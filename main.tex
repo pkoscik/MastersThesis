@@ -1,0 +1,194 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Bachelor's & Master's Thesis Template        %%
+%% Copyleft by Dawid Weiss & Marta Szachniuk    %%
+%% Faculty of Computing and Telecommunication   %%
+%% Poznan University of Technology, 2020        %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Szkielet dla pracy licencjackiej pisanej w języku polskim.
+
+\documentclass[english,masters,a4paper,oneside]{ppfcmthesis}
+
+
+\usepackage[utf8]{inputenc}
+\usepackage[OT4]{fontenc}
+
+% Fix footnotes to the bottom of the page
+\usepackage[bottom]{footmisc}
+
+% Better table formatting
+\usepackage{makecell}               % Makecell for breaking a long text
+\renewcommand{\cellalign}{tl}       % Makecell left alignment
+\renewcommand{\arraystretch}{1.75}  % More vertical padding
+
+% Code snippets
+\usepackage{listings}
+\usepackage{color}
+
+\usepackage{multicol}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+
+\usepackage{pdfpages}
+
+\definecolor{codegreen}{rgb}{0.00,0.60,0.00}
+\definecolor{preprocesorbrown}{rgb}{0.50,0.25,0.23} 
+\definecolor{codelightblue}{rgb}{0.30,0.70,0.60}
+
+\lstset{frame=tb,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{codelightblue},
+  commentstyle=\color{codegreen},
+  stringstyle=\color{preprocesorbrown},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+  captionpos=b
+}
+
+% Lists without bulletpoints
+\usepackage{enumitem}
+
+\lstdefinestyle{lstC}
+{
+	language = C,
+	keywordstyle     =   \color{blue}\ttfamily,
+  	commentstyle     =   \color{codegreen}\ttfamily,
+  	stringstyle      =   \color{red},
+  	emphstyle        =   \color{codelightblue}\ttfamily,
+  	directivestyle   =   \color{preprocesorbrown}\ttfamily,
+     morekeywords   =   {inline, target_ulong, uint32_t, uint64_t, no_inline, BOOL, _Bool},
+}
+
+\lstdefinestyle{lstCsharp} 
+{
+	language = C++, % No C# support
+	keywordstyle     =\color{blue}\ttfamily,
+  	commentstyle     =\color{codegreen}\ttfamily,
+  	stringstyle      =\color{red},
+  	emphstyle        =\color{codelightblue}\ttfamily,
+  	directivestyle   =\color{preprocesorbrown}\ttfamily,
+  	morekeywords     ={var,async,await,using,byte,string,get,set,uint, checked},
+  	emph             ={Descendants,First,FormUrlEncodedContent,HttpClient,
+  					   HttpWebRequest,HttpWebResponse,JObject,JProperty,
+  					   KeyValuePair,Length,List,OfType,
+  					   PropertyChangedEventHandler,Stream,StreamReader,
+  					   Value,WebRequest,Where}
+}
+
+%--------------------------------------
+% Strona tytułowa
+%--------------------------------------
+
+% Autorzy pracy, jeśli jest ich więcej niż jeden
+% wstaw między nimi separator \and
+\author
+{%
+   Patryk Kościk \album{144635}
+}
+\authortitle{}                                % Do not change.
+
+\title
+{%
+   Analysis of Trace-Based Evaluation of Cache Usage on the Example of the Renode Framework
+}
+
+% Your supervisor comes here.
+\ppsupervisor{dr inż. Mariusz Naumowicz} 
+
+% Year of final submission (not graduation!)
+\ppyear{2024}                                 
+
+
+\begin{document}
+
+% Front matter starts here
+\frontmatter\pagestyle{empty}%
+\maketitle\cleardoublepage%
+
+%--------------------------------------
+% Miejsce na kartę pracy dyplomowej
+%--------------------------------------
+
+\thispagestyle{empty}\vspace*{\fill}%
+\begin{center}Tutaj będzie karta pracy dyplomowej;\\oryginał wstawiamy do wersji dla archiwum PP, w pozostałych kopiach wstawiamy ksero.\end{center}%
+\vfill\cleardoublepage%
+
+
+% \thispagestyle{empty}\vspace*{\fill}%
+
+\begin{vplace}
+
+\begin{center}
+   \huge{\textit{Abstract}}
+\end{center}
+
+Abstract
+
+\end{vplace}
+
+\newpage
+
+\begin{vplace}
+
+\begin{center}
+   \huge{\textit{Streszczenie}}
+\end{center}
+
+Streszczenie
+
+\end{vplace}
+
+\newpage
+
+%--------------------------------------
+% Spis treści
+%--------------------------------------
+
+\pagenumbering{Roman}\pagestyle{ppfcmthesis}%
+\tableofcontents* 
+\cleardoublepage % Zaczynamy od nieparzystej strony
+
+%--------------------------------------
+% Rozdziały
+%--------------------------------------
+
+%Najwygodniej jeśli każdy rozdział znajduje się w oddzielnym pliku
+\mainmatter%
+\input{chapters/01-introduction.tex}
+
+%--------------------------------------
+% Literatura
+%--------------------------------------
+
+\bibliographystyle{unsrt}{\raggedright\sloppy\small\bibliography{bibliografia}}
+
+%--------------------------------------
+% Dodatki
+%--------------------------------------
+
+\cleardoublepage\appendix%
+\newpage
+% Removing all includes from this section breaks some conditional
+\if
+
+% \begin{appendices}
+%    % \include{chapters/A-definitions.tex}
+% \end{appendices}
+
+%--------------------------------------
+% Informacja o prawach autorskich
+%--------------------------------------
+
+\ppcolophon
+
+\end{document}
