@@ -15,7 +15,7 @@
 \usepackage[OT4]{fontenc}
 
 % Fix footnotes to the bottom of the page
-\usepackage[bottom]{footmisc}
+\usepackage[bottom, perpage]{footmisc}
 
 % Better table formatting
 \usepackage{makecell}               % Makecell for breaking a long text
@@ -132,7 +132,22 @@
    \huge{\textit{Abstract}}
 \end{center}
 
-Abstract
+% TODO: proofread
+In the context of modern computing, CPU cache plays a pivotal role in defining
+system performance across both complex computing systems and edge/embedded solutions.
+%
+Consequently, considerable effort is being invested in enhancing cache
+implementations and various optimizations, aimed at supporting both
+extensive workloads, such as large machine learning models, and smaller, more
+time-sensitive workloads, such as improving latencies in real-time operating
+systems.
+%
+This work will focus on determining whether using trace-based approaches are an
+effective solution for profiling CPU cache usage and performance.
+%
+Additionally, this study will examine the effects of cache size and configuration
+on processing bottlenecks, offering insights into how these factors influence
+overall system performance.
 
 \end{vplace}
 
@@ -144,7 +159,24 @@ Abstract
    \huge{\textit{Streszczenie}}
 \end{center}
 
-Streszczenie
+% TODO: proofread
+W kontekście nowoczesnych systemów komputerowych, pamięć podręczna procesora
+odgrywa kluczową rolę w wydajności systemu, zarówno w złożonych
+systemach obliczeniowych, jak i rozwiązaniach brzegowych/wbudowanych.
+%
+W związku z tym pokładane jest dużo pracy w ulepszanie implementacji pamięci
+podręcznej i różne optymalizacje, mające na celu wspieranie zarówno złożonych
+obliczeniowo zadań, takich jak duże modele uczenia maszynowego, jak i
+mniejszych, bardziej wrażliwych na czas obciążeń, takich jak optymalizacja
+opóźnień w systemach operacyjnych czasu rzeczywistego.
+%
+Ta praca skupi się na określeniu, czy wykorzystanie podejścia opartego
+na śledzeniu jest skutecznym rozwiązaniem do profilowania wykorzystania i
+wydajności pamięci podręcznej procesora.
+%
+Dodatkowo, to badanie zbada wpływ rozmiaru i konfiguracji pamięci podręcznej na
+wąskie gardła przetwarzania, oferując wgląd w to, jak czynniki te wpływają na
+ogólną wydajność systemu.
 
 \end{vplace}
 
@@ -165,6 +197,11 @@ Streszczenie
 %Najwygodniej jeśli każdy rozdział znajduje się w oddzielnym pliku
 \mainmatter%
 \input{chapters/01-introduction.tex}
+\input{chapters/02-background.tex}
+\input{chapters/03-stateoftheart.tex}
+\input{chapters/04-implementation.tex}
+\input{chapters/05-analysis.tex}
+\input{chapters/06-conclusions.tex}
 
 %--------------------------------------
 % Literatura
@@ -181,9 +218,13 @@ Streszczenie
 % Removing all includes from this section breaks some conditional
 \if
 
-% \begin{appendices}
-%    % \include{chapters/A-definitions.tex}
-% \end{appendices}
+\lstlistoflistings
+\clearpage
+\listoffigures
+
+\begin{appendices}
+   \include{chapters/A-definitions.tex}
+\end{appendices}
 
 %--------------------------------------
 % Informacja o prawach autorskich
