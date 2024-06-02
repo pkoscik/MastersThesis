@@ -14,10 +14,29 @@
 \subsection{Basic configuration parameters}
 %
 \subsection{Placement policies}
-\subsubsection{Instructions and data caching}
+Cache placement policies determine where a specific memory block can be loaded into
+the cache. The choice of placement policy influences the cache architecture and
+its control logic - affecting the overall complexity and performance of the system.
+Each policy involves trade-offs between speed, by the means of reducing cache misses and
+thrashing, and hardware costs related to the size and design of the hardware.
+
 \subsubsection{Fully associative cache}
-\subsubsection{Directly mapped cache}
+In the fully associative cache, each \textit{cache line} can hold a copy of
+\textit{any memory location}.
+% TODO: image, diagram
+
+
+
 \subsubsection{Set associative cache}
+The set associative cache introduces a concept of a \textit{set} - a collection
+of more than one cache line.
+% TODO: image, diagram
+
+\subsubsection{Directly mapped cache}
+In the directly mapped cache, each \textit{cache line} can hold a copy of
+a single \textit{tag}.
+% TODO: image, diagram
+
 %
 \subsection{Replacement policies}
 \subsubsection{Queue based}
