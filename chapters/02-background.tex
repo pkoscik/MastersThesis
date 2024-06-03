@@ -3,9 +3,45 @@
 
 
 \section{System emulation}
+
+% TODO: add footnote explaining that emulation and simulation will be used interchangebly
+% TODO: please for the love of GOD refactor/proofread this section
+System emulation is a technique of modeling and imitating the hardware of one
+system on another system. The range of emulation depends on the use case; some
+emulators, such as Wine or QEMU in KVM mode, only emulate system-level calls,
+executing the rest of the application natively. Another example of emulation
+is software like VirtualBox, VMWare, or Microsoft Hyper-V, which uses host
+processor virtualization extensions to run the guest operating system in a
+supervised environment, allowing for more separation between the guest software.
+More advanced emulators, such as the Renode framework, can emulate the entire
+platform, including processors and peripherals of another architecture. Another
+notable example of such an emulator is QEMU's system mode emulation and Intel
+Simics.
+
+Emulation software has become a crucial part of developing modern-day software
+and hardware. It finds uses in a variety of fields of software world, starting
+from enabling cloud services providers with secure, reproducible, and isolated
+execution environments. This task is mainly handled by the level one and
+two hypervisors such as VMWare or Hyper-V. Another use for emulators is the
+usage in continuous integration and delivery systems, where Kernel Virtual
+Machines (KVM), such as QEMU KVM, are widely used to aid in deploying so-called
+"runners", that execute testing and deployment software in a manageable and
+scalable manner. Yet another scenario where emulation greatly enhances workflow
+is the development of embedded/edge devices. Emulation software allows for
+the development of software for non-PC platforms - such as microcontrollers,
+SBCs or FPGA devices - without the need for physical hardware. This decoupling
+has become important as development teams have grown larger and larger. This
+streamlines the embedded software development process by further aligning it
+with classical software development practices. Emulation solutions provide
+first-class features such as reproducible CI pipelines, code coverage results
+and other tools that have been taken for granted in the desktop development.
+
 %
 
 \section{Caches and memory hierarchies}
+
+% TODO: some bullshit about how computers work here
+
 \subsection{Overview of memory hierarchy}
 \subsection{Role of caches in system performance}
 %
@@ -50,6 +86,19 @@ a single \textit{tag}. This policy is equivalent to the set associative cache, w
 \subsubsection{Frequency based}
 %
 \subsection{Cache coherency}
+
+The goal of cache coherency is to maintain a consistent state between two or
+more separate cache memories. This process can take place both in single-core
+systems—in which the state may be synchronized between different levels of cache
+- and in multicore processors, where the caches are kept in sync between multiple
+compute nodes.
+
 \subsubsection{Direct memory access}
+
+Direct memory access, also referred to as \textit{DMA}, is a mechanism that
+allows peripheral devices, such as expansion cards used in personal computers
+and various peripherals on embedded devices, to directly access main system memory,
+bypassing the CPU.
+
 \subsubsection{Symmetric multiprocessing}
 %
