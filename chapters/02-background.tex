@@ -20,12 +20,17 @@ its control logic - affecting the overall complexity and performance of the syst
 Each policy involves trade-offs between speed, by the means of reducing cache misses and
 thrashing, and hardware costs related to the size and design of the hardware.
 
+% TODO: explain how cache is adressed, how entry is split etc
+
 \subsubsection{Fully associative cache}
-In the fully associative cache, each \textit{cache line} can hold a copy of
+In the fully associative cache each \textit{cache line} can hold a copy of
 \textit{any memory location}.
 % TODO: image, diagram
 
-
+\noindent This configuration minimizes the chances of cache misses due to conflicts,
+potentially improving performance. However, this type of cache requires
+complex hardware for searching and managing, as it needs to check all entries
+simultaneously. This results in higher power consumption and increased die size.
 
 \subsubsection{Set associative cache}
 The set associative cache introduces a concept of a \textit{set} - a collection
@@ -33,8 +38,9 @@ of more than one cache line.
 % TODO: image, diagram
 
 \subsubsection{Directly mapped cache}
-In the directly mapped cache, each \textit{cache line} can hold a copy of
-a single \textit{tag}.
+In the directly mapped cache each \textit{cache line} can hold a copy of
+a single \textit{tag}. This policy is equivalent to the set associative cache, with
+1-way associativity.
 % TODO: image, diagram
 
 %
