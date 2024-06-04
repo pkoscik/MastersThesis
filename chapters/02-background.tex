@@ -89,16 +89,74 @@ a single \textit{tag}. This policy is equivalent to the set associative cache, w
 
 The goal of cache coherency is to maintain a consistent state between two or
 more separate cache memories. This process can take place both in single-core
-systems—in which the state may be synchronized between different levels of cache
+systems - in which the state is synchronized between two or more different levels of caches
 - and in multicore processors, where the caches are kept in sync between multiple
-compute nodes.
+processors.
 
+\pagebreak
 \subsubsection{Direct memory access}
-
+% TODO: citations
 Direct memory access, also referred to as \textit{DMA}, is a mechanism that
-allows peripheral devices, such as expansion cards used in personal computers
-and various peripherals on embedded devices, to directly access main system memory,
-bypassing the CPU.
+frees up the CPU cycles dedicated to memory operations. It is commonly used 
+in one of two configurations:
+
+\begin{itemize}
+	\item \textbf{I/O to memory DMA:} In this mode, the CPU initiates the data block % TODO: back this up
+		transfer, after which the DMA controller takes over to move or copy the data.
+		While the transfer is ongoing, the CPU remains free to perform other operations.
+		The processor receives an interrupt from the DMA controller once the transfer is complete.
+		This arrangement allows for multitasking during data transactions.
+	\item \textbf{Memory to memory DMA:} In this configuration the peripheral can perform memory % TODO: this too
+		transfers completely independently of the CPU. This allows for high speed data transfers
+		between different memory regions - often spanning multiple devices - without increasing
+		the processor workload.
+\end{itemize}
+
+\noindent DMA functionality can be found in a variety of modern devices and
+peripherals, starting from the relatively simple implementations found in the
+UART and USART controllers, passing through more complex setups in network % TODO: cite some examples of DMA here
+interfaces, and ending on high-performance computation accelerators (GPU/NPU)
+and storage controllers.
+
+\noindent In the cache coherency context, special care needs to be % TODO: cite something
+taken when utilizing and implementing DMA mechanisms, the figure
+(\ref{fig:dma_cache_issues}) presents the example of memory $\leftrightarrow$
+cache consistency error caused by an DMA access.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/dma_cache_issues.pdf}
+	\caption{Coherency error caused by a DMA transfer}
+	\label{fig:dma_cache_issues}
+\end{figure}
+
+\noindent This example starts off with the main memory and first level data cache - referred to as \texttt{l1d\$}, in sync.
+A DMA operation updates the main memory address \texttt{0x8000\_0000} to a new value \texttt{0xFF} - The change is performed directly
+in the memory, bypassing the CPU cache system. When CPU accesses this memory address, it retrieves the value from its
+cache line, which has not been updated, as the DMA transfer was completely transparent for the processor.
+In system design, there are two main ways to address such problems:
+
+\begin{itemize}
+	\item \textbf{Hardware approach:} \textit{bus snooping} (sometimes also referred to as\textit{bus sniffing}) is an % TODO: cite bus spoofing
+		approach where an additional hardware coherency controller - called \textit{snooper} - monitors the outstanding
+		transfers on the bus. When external access to a bus is detected, it sends a signal to the cache system, where the
+		effected caches are either flushed, or the invalid lines are marked as \textit{dirty}. The primary advantage of this solution is the reduced
+		complexity of the operating system and/or drivers, coupled with the CPU executing fewer instructions - at the cost of increased hardware complexity. % TODO: lots of 'complexity' here, refactor so it flows better
+	\item \textbf{Software approach:} in designs where implementing hardware coherency solution is not possible - due to space, power or cost constraints -
+		the software solutions must be used. In these cases the operating system, or the device drivers, must keep track of ongoing DMA transfers, and manually
+		invoke cache invalidating and flushing instructions when necessary. While such solutions reduce the overall hardware design complexity, they add a
+		runtime overhead for the processor.
+\end{itemize}
+
 
 \subsubsection{Symmetric multiprocessing}
-%
+% TODO: citations
+
+In the context of CPU's, symmetric multiprocessing (or shared-memory multiprocessing) is a system architecture, where two or more \textbf{identical processors} % TODO: add a footnote that SMP implies homogeneous systems (and CITE this as this is a pretty bold statement lol)
+are running \textbf{independently of each other}. In SMP systems processors share a common memory pool, allowing for data sharing and communication
+between cores. Such configuration requires that multiple cores share a common bus. Some examples of such buses include \textit{Front-side bus}, \textit{Intel Ultra Path Interconnect} % TODO: add citations here (yes, I'm artifically inflating the bilbiography :))
+and \textit{HyperTransport} on the x86 personal computers; examples used in embedded systems are \textit{Arm Advanced Microcontroller Bus Architecture} and \textit{SiFive TileLink}. % TODO: citation for AMBA TODO: XXX: is tilelink valid here?
+
+One of the key benefits of SMP designs is their ability to increase performance in a scalable manner, benefiting from parallelization of workloads among multiple cores. % TODO: really please start citing this
+Another advantage of such designs is the increased data throughput between multiple cores, which tend to be physically located close to each other on the silicon die.
+This proximity allows for much higher bus clock frequencies, thereby increasing the maximum possible data transfer bandwidth on the shared bus. % TODO: lots of 'bus' here
