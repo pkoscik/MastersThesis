@@ -81,6 +81,8 @@ a single \textit{tag}. This policy is equivalent to the set associative cache, w
 
 %
 \subsection{Replacement policies}
+In cache designs, the replacement policies refer to the selection of actions that are performed when a :w
+
 \subsubsection{Queue based}
 \subsubsection{Recency based}
 \subsubsection{Frequency based}
@@ -94,7 +96,7 @@ systems - in which the state is synchronized between two or more different level
 processors.
 
 \pagebreak
-\subsubsection{Direct memory access}
+\subsubsection{Direct memory access} \label{sec:dma}
 % TODO: citations
 Direct memory access, also referred to as \textit{DMA}, is a mechanism that
 frees up the CPU cycles dedicated to memory operations. It is commonly used 
@@ -160,3 +162,9 @@ and \textit{HyperTransport} on the x86 personal computers; examples used in embe
 One of the key benefits of SMP designs is their ability to increase performance in a scalable manner, benefiting from parallelization of workloads among multiple cores. % TODO: really please start citing this
 Another advantage of such designs is the increased data throughput between multiple cores, which tend to be physically located close to each other on the silicon die.
 This proximity allows for much higher bus clock frequencies, thereby increasing the maximum possible data transfer bandwidth on the shared bus. % TODO: lots of 'bus' here
+
+In the context of cache coherency, processors in SMP systems typically share not only the main memory but also higher-level caches - such as level 2 and level 3 caches.
+The contents of first level of cache are usually not shared between cores. Despite L1 being private to each core, coherence must be maintained across all cache levels. % TODO: footnote explaining cache sync vs cache cocherence
+This is achieved by using various \textit{coherence protocols}, such as \textbf{MESI} (Modified, Exclusive, Shared, Invalid) and \textbf{MOESI} (Modified, Owned, Exclusive, Shared, Invalid).
+This work will not cover the specific implementation details of these protocols. % XXX: nice cliffhanger ;) but rly maybe I should at least to try to put a simplified diagram 'ere?
+
