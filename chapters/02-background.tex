@@ -88,18 +88,32 @@ This means that such implementation is unpractical and seldom used for larger ca
 \begin{center}
 	\centering
 	\includegraphics[width=\textwidth]{figures/02-background/set_ass_mem.pdf}
-	\captionof{figure}{Visual representation of set associative mapping}
+	\captionof{figure}{Visual representation of 4-way set associative mapping}
 	\label{fig:set_ass_mem}
 \end{center}
 
-\noindent The set associative cache introduces a concept of a \textit{set} - a collection of more than one cache line.
+\noindent The set associative cache introduces a concept of a \textit{set} - a collection of more than one cache line sharing the same \textit{tag}.
+
+\begin{itemize}
+	\item \textbf{Offset:} bits used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in the cache line.
+	\item \textbf{Set:} (sometimes also called \textbf{index}) bits are used to select the cache set comparators. This example presents 4-way set associative cache - meaning that there are 4 lines
+		in each set - needing 2 bits to address it.
+	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 6 bits.
+\end{itemize}
+
+\noindent This configuration exchanges the flexibility of fully associative placement, for a significantly simplified hardware model. The reduced flexibility comes from the fact that
+not every memory address can be cached at the same time, let's imagine that the following addresses are loaded to the cache \texttt{0b0000\_00\_00}, \texttt{0b0001\_00\_00}, \texttt{0b0011\_00\_00}
+and \texttt{0b0111\_00\_00}; all of these four lines share the same \textit{set} \texttt{0b00}, loading another address with the same set, for example \texttt{0b1000\_00\_00} would require 
+an eviction of one of those lines. Eviction methods will be covered in the (\ref{sec:eviction_policies}) section.
+
+% \noindent This is the most popular type of cache \cite{digitaldesgnandcomp}.
 
 \subsubsection{Directly mapped cache}
 In the directly mapped cache each \textit{cache line} can hold a copy of a single \textit{tag}. This policy is equivalent to the set associative cache, with 1-way associativity.
 % TODO: image, diagram
 
 %
-\subsection{Replacement policies}
+\subsection{Replacement policies} \label{sec:eviction_policies}
 In cache design, the replacement policies describe behavior that is performed when a line needs to get \textit{evicted} from the cache memory.
 The choice of replacement policy is a trade-off between cache performance and design complexity required to implement given solution. Low power
 devices, such as embedded microcontrollers often opt of simple implementations, such as \textit{random eviction}, or \textit{FIFO}, as these require % TODO: add \ref to these methods
