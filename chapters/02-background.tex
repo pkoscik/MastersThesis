@@ -101,12 +101,14 @@ This means that such implementation is unpractical and seldom used for larger ca
 	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 6 bits.
 \end{itemize}
 
-\noindent This configuration exchanges the flexibility of fully associative placement, for a significantly simplified hardware model. The reduced flexibility comes from the fact that
+\noindent This configuration exchanges the flexibility of fully associative placement, for a simplified hardware model. The reduced flexibility comes from the fact that
 not every memory address can be cached at the same time, let's imagine that the following addresses are loaded to the cache \texttt{0b0000\_00\_00}, \texttt{0b0001\_00\_00}, \texttt{0b0011\_00\_00}
 and \texttt{0b0111\_00\_00}; all of these four lines share the same \textit{set} \texttt{0b00}, loading another address with the same set, for example \texttt{0b1000\_00\_00} would require 
-an eviction of one of those lines. Eviction methods will be covered in the (\ref{sec:eviction_policies}) section.
-
-% \noindent This is the most popular type of cache \cite{digitaldesgnandcomp}.
+an eviction of one of those lines. Eviction methods will be covered in the (\ref{sec:eviction_policies}) section. 
+This tradeoff is compensated by the simplified hardware model. The only method of reducing the number of comparators, is to reduce the number of bits in the \textit{tag} field, the \textit{set}
+matching can be done using simple \textit{MUX}-es \cite{whatevery}. % XXX: NASTY: i've just realised that I'm talking about comparators, but didn't explain anything about them? marking as nasty as this is a pretty big thing to explain : (
+This architecture has found widespread adoption, becoming the most popular type of cache for processors in embedded devices, personal computers and high performance compute clusters
+\cite{digitaldesgnandcomp} \cite{evalofcaceh}.
 
 \subsubsection{Directly mapped cache}
 In the directly mapped cache each \textit{cache line} can hold a copy of a single \textit{tag}. This policy is equivalent to the set associative cache, with 1-way associativity.
