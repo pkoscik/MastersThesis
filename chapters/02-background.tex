@@ -47,7 +47,6 @@ and other tools that have been taken for granted in the desktop development.
 %
 
 \section{CPU caches}
-\subsection{Basic configuration parameters}
 %
 \subsection{Placement policies}
 Cache placement policies determine where a specific memory block can be loaded into
@@ -56,36 +55,81 @@ its control logic - affecting the overall complexity and performance of the syst
 Each policy involves trade-offs between speed, by the means of reducing cache misses and
 thrashing, and hardware costs related to the size and design of the hardware.
 
-% TODO: explain how cache is adressed, how entry is split etc
+\vspace{10px}
+\noindent Memory and cache configuration for all examples in this section:
+\begin{itemize}
+	\item Memory size: 1 KiB
+	\item Cache size: 32 bytes
+	\item Cache block size: 4 bytes
+	\item Number of lines: 8
+\end{itemize}
 
 \subsubsection{Fully associative cache}
-In the fully associative cache each \textit{cache line} can hold a copy of
-\textit{any memory location}.
-% TODO: image, diagram
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/full_ass_mem.pdf}
+	\captionof{figure}{Visual representation of fully associative mapping}
+	\label{fig:full_ass_mem}
+\end{center}
 
-\noindent This configuration minimizes the chances of cache misses due to conflicts,
-potentially improving performance. However, this type of cache requires
-complex hardware for searching and managing, as it needs to check all entries
-simultaneously. This results in higher power consumption and increased die size.
+\noindent In the fully associative cache each \textit{cache line} can hold a copy of \textit{any memory location}. The memory address is split into the following bit fields:
+
+\begin{itemize}
+	\item \textbf{Offset:} bits used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in the cache line.
+	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 8 bits.
+\end{itemize}
+
+
+\noindent This configuration minimizes the chances of cache misses due to conflicts, potentially improving performance. However, this type of cache requires complex hardware for
+searching and managing, as it needs to check all entries simultaneously - this means that there are needed as many comparators as there are bits in the \textit{tag} field.
+This means that such implementation is unpractical and seldom used for larger caches \cite{whatevery}, this results in high power consumption and greatly increased die size.
 
 \subsubsection{Set associative cache}
-The set associative cache introduces a concept of a \textit{set} - a collection
-of more than one cache line.
-% TODO: image, diagram
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/set_ass_mem.pdf}
+	\captionof{figure}{Visual representation of set associative mapping}
+	\label{fig:set_ass_mem}
+\end{center}
+
+\noindent The set associative cache introduces a concept of a \textit{set} - a collection of more than one cache line.
 
 \subsubsection{Directly mapped cache}
-In the directly mapped cache each \textit{cache line} can hold a copy of
-a single \textit{tag}. This policy is equivalent to the set associative cache, with
-1-way associativity.
+In the directly mapped cache each \textit{cache line} can hold a copy of a single \textit{tag}. This policy is equivalent to the set associative cache, with 1-way associativity.
 % TODO: image, diagram
 
 %
 \subsection{Replacement policies}
-In cache designs, the replacement policies refer to the selection of actions that are performed when a :w
+In cache design, the replacement policies describe behavior that is performed when a line needs to get \textit{evicted} from the cache memory.
+The choice of replacement policy is a trade-off between cache performance and design complexity required to implement given solution. Low power
+devices, such as embedded microcontrollers often opt of simple implementations, such as \textit{random eviction}, or \textit{FIFO}, as these require % TODO: add \ref to these methods
+a lower amount of digital logic to select a line to evict, decreasing power consumption. High performance processors, found in PCs, servers, tablets and smartphones,
+often use more advanced policies, such as \textit{LRU} and \textit{LFU}.
 
 \subsubsection{Queue based}
+% TODO(WHOLE PAR): replace 'policy' - used to often
+Queue-based replacement policies use data structures such as queues to manage the replacement process. The most common queue based policy is the
+\textit{First In First Out (FIFO)} policy. In this implementation the oldest cache line is replaced first. The main advantages of this policy are  % TODO: replace 'implementation'
+its relative ease of implementation and predictable eviction behavior. That simplicity comes at a cost, as this policy does not guarantee optimal cache usage. The queue
+based policies do not consider the frequency or recency of the data access when evicting lines, this can lead to a scenario where a data line, that has just been accessed - and due to
+temporal locality - is likely to be accessed again, might get prematurely evicted from the cache, simply because it was the first loaded line.
+
+\vspace{10px}\noindent Other queue based replacement policies include: Circular Buffer, Second Chance or Clock algorithms. % TODO: find citations
+
 \subsubsection{Recency based}
+Recency based policies prioritize data that has been accessed most recently - leveraging the concept of temporal locality - addressing one of
+the main drawback of queue based policies. One of the examples of such policy is \textit{Least Recently Used (LRU)} policy. In this approach, the cache controller
+keeps track of the recency of data by maintaining an ordered list of cache lines, where the most recently accessed lines are moved to the front. Due to the need of monitoring
+the usage data, LRU (or other frequency based policies) require much more complex hardware designs, increasing power consumption. 
+
+\vspace{10px}\noindent Other recency based replacement policies include: Most Recently Used, LFU with Aging or LRU-K. % TODO: find citations
+
 \subsubsection{Frequency based}
+Frequency based policies attempt to leverage the temporal locality of the memory transfers, by prioritizing the data that has been used (read) most frequently.
+An example of these policies is the \textit{Least Frequently Used (LFU)}. Similarly to the recency based approaches, the cache controller tracks additional usage counters
+for each line, related to the amount of times that the address has been accessed - this increases performance at the cost of increased complexity.
+
+\vspace{10px}\noindent Other frequency based replacement policies include: Adaptive Replacement Cache, Two-Level Adaptive Replacement Cache or Least Frequently Used with Dynamic Aging. % TODO: find citations
 %
 \subsection{Cache coherency}
 
@@ -95,7 +139,6 @@ systems - in which the state is synchronized between two or more different level
 - and in multicore processors, where the caches are kept in sync between multiple
 processors.
 
-\pagebreak
 \subsubsection{Direct memory access} \label{sec:dma}
 % TODO: citations
 Direct memory access, also referred to as \textit{DMA}, is a mechanism that
@@ -125,12 +168,12 @@ taken when utilizing and implementing DMA mechanisms, the figure
 (\ref{fig:dma_cache_issues}) presents the example of memory $\leftrightarrow$
 cache consistency error caused by an DMA access.
 
-\begin{figure}[h]
+\begin{center}
 	\centering
 	\includegraphics[width=\textwidth]{figures/02-background/dma_cache_issues.pdf}
-	\caption{Coherency error caused by a DMA transfer}
+	\captionof{figure}{Coherency error caused by a DMA transfer}
 	\label{fig:dma_cache_issues}
-\end{figure}
+\end{center}
 
 \noindent This example starts off with the main memory and first level data cache - referred to as \texttt{l1d\$}, in sync.
 A DMA operation updates the main memory address \texttt{0x8000\_0000} to a new value \texttt{0xFF} - The change is performed directly
