@@ -5,6 +5,7 @@
 
 \subsection{Zephyr based matrix-multiplication}
 
+% TODO: is zephyr even imporant here? idk
 Matrix multiplication is a fundamental operation in many scientific and engineering applications, including high-performance computing (e.g., finite element methods), machine
 learning (e.g., linear algebra), and edge computing (e.g., DSP, edge-AI, cryptography), among others. This section discusses the implementation and of various cache multiplication algorithms,
 taking into the account cache usage in each of them.
@@ -14,6 +15,8 @@ its user-friendly build system (\texttt{CMake} alongside the \texttt{west} helpe
 Moreover, Zephyr is a collaborative project with the Linux Foundation and is the fastest-growing real-time operating system \cite{zephyrlotsofcommits}. It has commercial support
 from major vendors in the embedded and edge computing sectors, such as Nordic Semiconductors, NXP, STMicroelectronics, Microchip, and many others \cite{aboutzephyr}. Additionally,
 it is backed by major companies in the technology sector, including, among others, Google, Meta, Qualcomm and Intel \cite{zephyrmetagoogle, zephyrmembers}.
+
+\noindent This payload will be used for testing \textit{different software configurations}, while the simulated \textit{hardware remains unchanged}.
 
 \subsubsection{Naive approach}
 The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method, is called naive, as it is simple, but not cache-friendly
@@ -92,10 +95,66 @@ for (i = 0; i < SIZE; i += B) {
 \end{center}
 
 \subsection{Linux kernel}
+% TODO: this section is a biiit short
+The Linux kernel is a core component of many devices, ranging from relatively small microcontrollers, to desktop computers and even HPC clusters.
+It has been selected as a payload due to its relatively lengthy and memory-access-intensive boot process, such as during the unpacking of initramfs. This process is
+characterized by a mix of sequential and random memory access patterns, providing a good benchmark for testing various cache configurations.
+
+\noindent This payload will be used for testing \textit{different hardware configurations}, while the \textit{software remains unchanged}.
 
 \section{Cache model verification}
 
 \subsection{Integrated test bench}
+The integrated test bench is designed to evaluate the correctness of the cache model through three independent test cases, each verifying a different cache placement method:
+set associative, fully associative, and direct mapping. In each case, the cache was configured with a 1 KiB size, 4 byte block size, and 10-bit memory addressing\footnote{This
+configuration was arbitrarily chosen with the goal of operating on a small number of cache lines, making it easier to work with as a test example.}, with the only difference
+being the mapping method. After the configuration, each test performs a set of memory operations that verify the proper behavior when reading from both valid and empty lines, line
+eviction behavior, flushing, and correct set/index matching. A snipped of the test for the set associative cache has been included below:
+
+\begin{center}
+\centering
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[
+    language=Python,
+	morekeywords={self},
+    label={lst:cache_write_read},
+    caption={Snippet of integrated testbench - set associative unit test}
+    ]
+cache = Cache(
+    name='set_associative',
+    cache_width=6,
+    block_width=2,
+    memory_width=10,
+    lines_per_set=4,
+    replacement_policy='FIFO',
+)
+test = DummyLogInterface()
+test.configure_caches(cache)
+
+test.simulate([
+    {'mr': 0b000000_00_00},  # Set 0
+    {'mr': 0b000000_01_00},  # Set 1
+    {'mr': 0b000000_10_00},  # Set 2
+    {'mr': 0b000000_11_00},  # Set 3
+])
+assert test.cache.hits == 0
+assert test.cache.misses == 4
+assert test.cache.invalidations == 0
+
+test.simulate([
+    {'mr': 0b000000_00_11},  # Set 0
+    {'mr': 0b000000_01_11},  # Set 1
+    {'mr': 0b000000_10_11},  # Set 2
+    {'mr': 0b000000_11_11},  # Set 3
+])
+assert test.cache.hits == 4
+assert test.cache.misses == 4
+assert test.cache.invalidations == 0
+
+...
+\end{lstlisting}
+\end{minipage}
+\end{center}
 
 \subsection{Verification against QEMU TCG Modeling plugin}
 The cache model was verified against the QEMU TCG (Tiny Code Generator) modeling plugin. The plugin provides a framework for simulating various cache configurations and comparing
