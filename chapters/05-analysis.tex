@@ -287,7 +287,7 @@ void z_prep_c(void)
 \end{minipage}
 \end{center}
 
-\noindent To comply with the measurement window described in Section (\ref{snip:measurement_window}), the performance counters are later accessed and their values are read in the
+\noindent To comply with the measurement window described in Section (\ref{snip:measurement_window}), the performance counters are later accessed, and their values are read in the
 \textit{finished()} function:
 
 \begin{center}
@@ -311,6 +311,8 @@ void __attribute__ ((noinline)) finished(void)
 \end{minipage}
 \end{center}
 
+\noindent The sample was then compiled and flashed onto the hardware target using the \texttt{west} utility. The performance counter results are presented in Table \ref{table:cache_results}.
+
 \subsection{Verification results}
 
 \begin{center}
@@ -319,9 +321,9 @@ void __attribute__ ((noinline)) finished(void)
 \begin{tabular}{|l|c|c|c|c|}
 \hline
 \textbf{Environment} & \textbf{Accesses} & \textbf{Misses} & \textbf{Hits} & \textbf{HMR} \\ \hline
-Renode generated trace + Cache model    & 91468        & 291         & a & a\\ \hline
-QEMU TCG Cache Modeling Plugin          & 91470        & 292         & a & a\\ \hline
-Hardware performance counters          & -        & 292         & - & -\\ \hline % TODO: XXX: NASTY: i think it might be possible to get the accesses using the minstret csr?
+Cache model + Renode generated trace    & 91468        & 291         & 91177 & 99.68\%    \\ \hline
+QEMU TCG Cache Modeling Plugin          & 91470        & 292         & 91178 & 99.68\%    \\ \hline
+Hardware performance counters           & -            & 217         & - & -			  \\ \hline % TODO: i think it might be possible to get the accesses using the minstret csr?
 \end{tabular}
 \caption{Instruction accesses and misses for QEMU and Renode environments}
 \label{table:cache_results}
