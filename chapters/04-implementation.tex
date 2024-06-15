@@ -36,56 +36,51 @@ providing read/write operations, cache flushing, and constructor with configurat
     label={lst:cache_ctor},
     caption={\texttt{Cache} constructor with configuration parameters}
     ]
-def __init__(
-	self,
-	name: str,
-	cache_width: int,
-	block_width: int,
-	memory_width: int,
-	lines_per_set: int,
-	replacement_policy: str
-):
-'''
-    +----------------------------+--------------------+--------------+
-    |            TAG                |           SET         |     OFFSET    |
-    +----------------------------+--------------------+--------------+
-    C                               B                       A               0
+class Cache:
+    def __init__(
+        self,
+        name: str,
+        cache_width: int,
+        block_width: int,
+        memory_width: int,
+        lines_per_set: int,
+        replacement_policy: str | None = None,
+        debug: bool = False
+    ):
+        self.name = name
+        self.debug = debug
 
-    TAG    = [C   : B]
-    SET    = [B-1 : A]
-    OFFSET = [A-1 : 0]
-'''
-# Width of the memories
-self._cache_width = cache_width
-self._block_width = block_width    # [A:0] width
-self._memory_width = memory_width  # [C:0] width
+        # Width of the memories
+        self._cache_width = cache_width
+        self._block_width = block_width
+        self._memory_width = memory_width
 
-# Convert __width of the bus__ to __size in bytes__
-self._cache_size = 2 ** self._cache_width
-self._block_size = 2 ** self._block_width
-self._memory_size = 2 ** self._memory_width
+        # Convert width to size in bytes
+        self._cache_size = 2 ** self._cache_width
+        self._block_size = 2 ** self._block_width
+        self._memory_size = 2 ** self._memory_width
 
-self._num_lines = self._cache_size // self._block_size
-self._lines = [CacheLine() for i in range(self._num_lines)]
+        self._num_lines = self._cache_size // self._block_size
+        self._lines = [CacheLine() for i in range(self._num_lines)]
 
-if lines_per_set == -1:
-    # special configuration case for fully associative mapping
-    lines_per_set = self._num_lines
+        if lines_per_set == -1:
+            # special configuration case for fully associative mapping
+            lines_per_set = self._num_lines
 
-if not (lines_per_set & (lines_per_set - 1) == 0) or lines_per_set == 0:
-    raise Exception('Lines per set must be a power of two (1, 2, 4, 8, ...)')
+        if not (lines_per_set & (lines_per_set - 1) == 0) or lines_per_set == 0:
+            raise Exception('Lines per set must be a power of two (1, 2, 4, 8, ...)')
 
-self._lines_per_set = lines_per_set
-self._sets = self._num_lines // lines_per_set
-self._set_width = int(math.log(self._sets, 2))  # calculate [B:A] width
+        self._lines_per_set = lines_per_set
+        self._sets = self._num_lines // lines_per_set
+        self._set_width = int(math.log(self._sets, 2))
 
-self._replacement_policy = replacement_policy
+        self._replacement_policy = replacement_policy if replacement_policy is not None else 'RAND'
 
-# Statistics
-self.misses = 0
-self.hits = 0
-self.invalidations = 0
-self.flushes = 0
+        # Statistics
+        self.misses = 0
+        self.hits = 0
+        self.invalidations = 0
+        self.flushes = 0
 \end{lstlisting}
 \end{minipage}
 \end{center}
@@ -103,34 +98,38 @@ self.flushes = 0
     caption={\texttt{Cache} write and read interfaces}
     ]
 def read(self, addr: int) -> None:
-    self.printd(f'reading from cache @ {bin(addr)} (set {self._addr_get_set(addr)})')
-    line, _, _ = self._line_lookup(addr)
+    sset = self._addr_get_set(addr)
+    line = self._line_lookup(addr)
+    self.printd(f'[read] attempt to fetch {hex(addr)} (set {sset})')
 
     if line and not line.free:
         self.printd('[read] rhit')
         self.hits += 1
         line.use_count += 1
+        line.last_access_time = time.time()
     else:
         self.printd('[read] rmiss')
         self.misses += 1
-        line = self._load(addr)
+        self._load(addr)
 
 def write(self, addr: int) -> None:
-    self.printd(f'[write] writing to cache @ {hex(addr)}')
-    line, _, _ = self._line_lookup(addr)
+    sset = self._addr_get_set(addr)
+    line = self._line_lookup(addr)
+    self.printd(f'[write] attempted write to {hex(addr)} (set {sset})')
 
     if line:
         self.printd('[write] whit')
         self.hits += 1
+        line.last_access_time = time.time()
     else:
         self.printd('[write] wmiss')
         self.misses += 1
-        line = self._load(addr)
+        self._load(addr)
 \end{lstlisting}
 \end{minipage}
 \end{center}
 
-\noindent The code responsible for finding matching cache line for the given address has been extracted to the internal \footnote{The Python programming language does not have a
+\noindent The code responsible for finding matching cache line for the given address has been extracted to the internal\footnote{The Python programming language does not have a
 built-in mechanism for enforcing access rights to fields in a class. However, PEP 8 specifies that variables starting with '\texttt{\_}' should be used internally in the class
 \cite{pep8}.} \texttt{\_line\_lookup} method:
 
@@ -143,24 +142,16 @@ built-in mechanism for enforcing access rights to fields in a class. However, PE
     label={lst:line_lookup},
     caption={\texttt{Cache} line lookup}
     ]
-def _line_lookup(self, addr: int) -> tuple[CacheLine, list, int] | None:
+def _line_lookup(self, addr: int) -> CacheLine | None:
     tag = self._addr_get_tag(addr)
-    set_index = self._addr_get_set(addr)
-    lines_in_set = self._get_lines_for_set(set_index)
-
-    line = None
-    for line_candidate in lines_in_set:
-       if line_candidate.tag == tag:
-            line = line_candidate
-            break
-
-    return line, lines_in_set, tag if line else None
+    lines_in_set = self._get_lines_in_set(self._addr_get_set(addr))
+    return next((line for line in lines_in_set if line.tag == tag), None)
 \end{lstlisting}
 \end{minipage}
 \end{center}
 
-\noindent If a matching line is found, the function returns a reference to this line, other lines in the same set and the line tag. If no match can be made, the method returns \texttt{None}. This
-method uses helper functions to extract the bit-fields from the memory address:
+\noindent If a matching line is found, the function returns a reference to this line. If no match can be made, the method returns \texttt{None}. This method uses helper functions
+to extract the bit-fields from the memory address:
 
 
 \begin{center}
@@ -168,39 +159,31 @@ method uses helper functions to extract the bit-fields from the memory address:
 \begin{minipage}{\linewidth}
 \begin{lstlisting}[
     language=Python,
-	morekeywords={self},
+	morekeywords={self, @staticmethod},
     label={lst:bitfield_hepers},
     caption={Bitfields helper functions}
     ]
-def create_mask(start_bit: int, end_bit: int) -> int:
+@staticmethod
+def _extract_bits(value: int, start_bit: int, end_bit: int) -> int:
     num_bits = end_bit - start_bit + 1
-    mask = (1 << num_bits) - 1
-    mask <<= start_bit
-    return mask
-
-def extract_bits(value: int, start_bit: int, end_bit: int) -> int:
-    mask = create_mask(start_bit, end_bit)
+    mask = ((1 << num_bits) - 1) << start_bit
     extracted_bits = (value & mask) >> start_bit
     return extracted_bits
 
-class Cache:
-    def _addr_get_tag(self, addr: int) -> int:
-        ''' Extract [C:B] from the address '''
-        start = self._block_width + self._set_width
-        end = self._memory_width
-        return extract_bits(addr, start, end)
-    
-    def _addr_get_set(self, addr: int) -> int:
-        ''' Extract [B-1:A] from the address '''
-        start = self._block_width
-        end = self._block_width + self._set_width - 1
-        return extract_bits(addr, start, end)
-    
-    def _addr_get_offset(self, addr: int) -> int:
-        ''' Extract [A-1:0] from the address '''
-        start = 0
-        end = self._block_width - 1
-        return extract_bits(addr, start, end)
+def _addr_get_tag(self, addr: int) -> int:
+    start = self._block_width + self._set_width
+    end = self._memory_width
+    return self._extract_bits(addr, start, end)
+
+def _addr_get_set(self, addr: int) -> int:
+    start = self._block_width
+    end = self._block_width + self._set_width - 1
+    return self._extract_bits(addr, start, end)
+
+def _addr_get_offset(self, addr: int) -> int:
+    start = 0
+    end = self._block_width - 1
+    return self._extract_bits(addr, start, end)
 \end{lstlisting}
 \end{minipage}
 \end{center}
@@ -217,28 +200,55 @@ class Cache:
     label={lst:cache_load},
     caption={\texttt{Cache} load method}
     ]
-def _load(self, phys_addr) -> CacheLine:
-    self.printd(f'[load] loading @ {hex(phys_addr)} to cache')
-    tag = self._phys_addr_get_tag(phys_addr)
-    set_index = self._phys_addr_get_set(phys_addr)
-    lines_in_set = self._get_lines_for_set(set_index)
+def _load(self, addr: int) -> None:
+    self.printd(f'[load] loading @ {hex(addr)} to cache from Main Memory')
+    tag = self._addr_get_tag(addr)
+    set_index = self._addr_get_set(addr)
+    lines_in_set = self._get_lines_in_set(set_index)
 
     free_line_index = next((index for index, obj in enumerate(lines_in_set) if obj.free), None)
     if free_line_index is not None:
         index = free_line_index
+        self.printd(f'[load] loaded new cache index: {free_line_index} in the set {set_index}')
     else:
+        self.printd(f"[load] lines in set {set_index}:")
+        self.printd('\n'.join(f'{index}: {line}' for index, line in enumerate(lines_in_set)))
         index = self._select_evicted_index(lines_in_set)
+        self.printd(f'[load] invalidated index: {index} in the set {set_index}')
         self.invalidations += 1
-        self.printd(f'[load] set: {set_index}, invalidating line: {index}')
 
-	self.printd(f'[load] loading a new line to set: {set_index} with index: {index}')
-    victim = lines_in_set[index]
-    victim.free = False
-    victim.tag = tag
-    return victim
+    lines_in_set[index].init(tag, False)
 \end{lstlisting}
 \end{minipage}
 \end{center}
+
+\subsubsection*{Line eviction algorithms}
+\noindent The line eviction algorithms are implemented in the \texttt{\_select\_evicted\_index} method:
+
+\begin{center}
+\centering
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[
+    language=Python,
+	morekeywords={self},
+    label={lst:cache_load},
+    caption={\texttt{Cache} load method}
+    ]
+def _select_evicted_index(self, lines_in_set: list) -> int:
+    if self._replacement_policy == 'RAND':
+        return random.randint(0, self._lines_per_set - 1)
+    elif self._replacement_policy == 'LFU':
+        return min(range(len(lines_in_set)), key=lambda i: lines_in_set[i].use_count)
+    elif self._replacement_policy == 'FIFO':
+        return min(range(len(lines_in_set)), key=lambda i: lines_in_set[i].insertion_time)
+    elif self._replacement_policy == 'LRU':
+        return min(range(len(lines_in_set)), key=lambda i: lines_in_set[i].last_access_time)
+    else:
+        raise Exception(f"Unknown replacement policy: {self._replacement_policy}! Exiting!")
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
 
 \subsubsection*{Cache flushing}
 \noindent Cache flushing is implemented by re-initializing the internal cache state:
@@ -253,7 +263,7 @@ def _load(self, phys_addr) -> CacheLine:
     caption={\texttt{Cache} flush method}
     ]
 def flush(self) -> None:
-    self.printd('[flush] flushing cache')
+    self.printd('[flush] flushing all lines!')
     self.flushes += 1
     self._lines = [CacheLine() for i in range(self._num_lines)]
 \end{lstlisting}
@@ -283,10 +293,28 @@ The \texttt{CacheLine} class represents a cache line entry:
     caption={\texttt{CacheLine} class}
     ]
 class CacheLine:
+    """
+    Represents a cache line in a cache set.
+
+    tag (int): The tag of the cache line.
+    use_count (int): Used for replacement policies:
+    insertion_time (float): The time when the cache line was inserted.
+    last_access_time (float): The time when the cache line was last accessed.
+    free (bool): Indicates if the line contains valid data.
+    """
+
     def __init__(self):
-        self.tag = 0b0
-        self.use_count = 0x0
-        self.free = True
+        self.init()
+
+    def init(self, tag: int = 0, free: bool = True):
+        self.tag = tag
+        self.free = free
+        self.use_count: int = 0
+        self.insertion_time: float = time.time()
+        self.last_access_time: float = 0
+
+    def __str__(self) -> str:
+        return f"[CacheLine]: tag: {self.tag:b}, free: {self.free}, use: {self.use_count}, insertion: {self.insertion_time}, last access: {self.last_access_time}"
 \end{lstlisting}
 \end{minipage}
 \end{center}
@@ -326,14 +354,14 @@ of the emulation core component. To test and use the cache model, two interfaces
     ]
 class DummyLogInterface:
     def __init__(self, cache: Cache):
-        self.cache = cache
         self.count_insn_read = 0
         self.count_mem_read = 0
         self.count_mem_write = 0
         self.count_io_read = 0
         self.count_io_write = 0
+        self.cache = cache
 
-    def simulate(self, data: dict):
+    def simulate(self, data: list[Dict[str, int]]):
         for access in data:
             for type, addr in access.items():
                 match type:
@@ -344,10 +372,10 @@ class DummyLogInterface:
                         self.count_mem_read += 1
                         self.cache.read(addr)
                     case 'ior':
-                        self.count_io_read += 1
+                        self.count_io_write += 1
                     case 'iow':
                         self.cache.flush()
-                        self.count_io_write += 1
+                        self.count_io_read += 1
                     case _:
                         raise ValueError('Unsupported memory operation!')
 \end{lstlisting}
@@ -503,38 +531,30 @@ After each line is parsed, the cache model state is updated accordingly.
     label={lst:renodeinterface},
     caption={\texttt{RenodeLogInterface} simulate implementation}
     ]
-def simulate(self):
+def simulate(self) -> None:
     """ Simulate the cache structure
-
     Due to _large_ trace files, parse the file line-by-line.
 
     Renode ExecutionTracer outputs the following data:
-
     * `PC`: `OPCODE`
     * Memory{Write, Read} with address `ADDR`
     * MemoryIO{Write, Read} with address `ADDR`
     """
+    lines = sum(1 for i in open(self.fname, 'rb'))
     with open(self.fname, 'r') as f:
         for line in tqdm(f, total=lines):
             if ':' in line and self.l1i is not None:
+                # TODO: Handle cache invalidating opcodes
                 self.count_insn_read += 1
                 pc, opcode = (int(value.strip(), 16) for value in line.split(":"))
-                if opcode in self.invalidation_opcodes:
-                    match self.invalidation_opcodes[opcode]:
-                        case 'i':
-                            self.l1i.flush()
-                        case 'd':
-                            self.l1d.flush()
                 self.l1i.read(pc)
             elif line.startswith('Memory') and self.l1d is not None:
                 parts = line.split()
                 address = int(parts[-1], 16)
                 match parts[0].lower().removeprefix('memory'):
                     case 'iowrite':
-                        self._handle_io(self, 'write')
                         self.count_io_write += 1
                     case 'ioread':
-                        self._handle_io(self, 'read')
                         self.count_io_read += 1
                     case 'write':
                         self.count_mem_write += 1
@@ -572,8 +592,7 @@ cache = Cache(
     lines_per_set=4,
     replacement_policy='FIFO',
 )
-test = DummyLogInterface()
-test.configure_caches(cache)
+test = DummyLogInterface(cache)
 
 test.simulate([
     {'mr': 0b000000_00_00},  # Set 0
