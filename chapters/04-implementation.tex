@@ -306,12 +306,12 @@ class CacheLine:
     def __init__(self):
         self.init()
 
-    def init(self, tag: int = 0, free: bool = True):
+    def init(self, tag: int = 0b0, free: bool = True):
         self.tag = tag
         self.free = free
         self.use_count: int = 0
         self.insertion_time: float = time.time()
-        self.last_access_time: float = 0
+        self.last_access_time: float = 0.0
 
     def __str__(self) -> str:
         return f"[CacheLine]: tag: {self.tag:b}, free: {self.free}, use: {self.use_count}, insertion: {self.insertion_time}, last access: {self.last_access_time}"
@@ -322,7 +322,9 @@ class CacheLine:
 \noindent
 \begin{itemize}
     \item \textbf{Tag:} Binary identifier distinguishing the data block, extracted from the physical address.
-    \item \textbf{Use Count:} Counter for replacement policies; tracks accesses (LFU), recency (LRU), or order (FIFO).
+    \item \textbf{Use Count:} The line reference usage counter for the LFU replacement policy.
+    \item \textbf{Insertion Time:} The timestamp indicating when the cache line was inserted, used for the FIFO replacement policy.
+    \item \textbf{Last Access Time:} The timestamp indicating when the cache line was last accessed, used for the LRU replacement policy.
     \item \textbf{Free:} Boolean flag; \texttt{True} if the line is free for new data, \texttt{False} if it contains valid data, and will need to be evicted.
 \end{itemize}
 
