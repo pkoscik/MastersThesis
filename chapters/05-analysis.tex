@@ -104,58 +104,6 @@ characterized by a mix of sequential and random memory access patterns, providin
 
 \section{Cache model verification}
 
-\subsection{Integrated test bench}
-The integrated test bench is designed to evaluate the correctness of the cache model through three independent test cases, each verifying a different cache placement method:
-set associative, fully associative, and direct mapping. In each case, the cache was configured with a 1 KiB size, 4 byte block size, and 10-bit memory addressing\footnote{This
-configuration was arbitrarily chosen with the goal of operating on a small number of cache lines, making it easier to work with as a test example.}, with the only difference
-being the mapping method. After the configuration, each test performs a set of memory operations that verify the proper behavior when reading from both valid and empty lines, line
-eviction behavior, flushing, and correct set/index matching. A snippet of the test for the set associative cache has been included below:
-
-\begin{center}
-\centering
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[
-    language=Python,
-	morekeywords={self},
-    label={lst:cache_write_read},
-    caption={Snippet of integrated testbench - set associative unit test}
-    ]
-cache = Cache(
-    name='set_associative',
-    cache_width=6,
-    block_width=2,
-    memory_width=10,
-    lines_per_set=4,
-    replacement_policy='FIFO',
-)
-test = DummyLogInterface()
-test.configure_caches(cache)
-
-test.simulate([
-    {'mr': 0b000000_00_00},  # Set 0
-    {'mr': 0b000000_01_00},  # Set 1
-    {'mr': 0b000000_10_00},  # Set 2
-    {'mr': 0b000000_11_00},  # Set 3
-])
-assert test.cache.hits == 0
-assert test.cache.misses == 4
-assert test.cache.invalidations == 0
-
-test.simulate([
-    {'mr': 0b000000_00_11},  # Set 0
-    {'mr': 0b000000_01_11},  # Set 1
-    {'mr': 0b000000_10_11},  # Set 2
-    {'mr': 0b000000_11_11},  # Set 3
-])
-assert test.cache.hits == 4
-assert test.cache.misses == 4
-assert test.cache.invalidations == 0
-
-...
-\end{lstlisting}
-\end{minipage}
-\end{center}
-
 \subsection{Verification against QEMU TCG Cache Modeling plugin}
 The cache model was also verified against the QEMU TCG Cache Modeling plugin, introduced in section (\ref{sec:qemu_cache}).
 Since this cache model is only supported for virtual QEMU platforms, it was necessary to find a platform that is compatible with both QEMU and Renode - the simulator that generates
