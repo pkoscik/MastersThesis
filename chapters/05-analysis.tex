@@ -104,17 +104,20 @@ characterized by a mix of sequential and random memory access patterns, providin
 
 \section{Cache model verification}
 
-\subsection{Verification against QEMU TCG Cache Modeling plugin}
-The cache model was also verified against the QEMU TCG Cache Modeling plugin, introduced in section (\ref{sec:qemu_cache}).
-Since this cache model is only supported for virtual QEMU platforms, it was necessary to find a platform that is compatible with both QEMU and Renode - the simulator that generates
-the trace files for the model created in this work.
+To validate the model, it was tested against two independent data sources. The first validation was performed using the QEMU TCG Cache Modeling plugin as a reference, and the
+second test was conducted by using a hardware device with built in hardware performance counters. The data input for the cache model implemented in this work was generated using
+the Renode framework. This constrains the hardware choice to platforms that are compatible with both QEMU and Renode and are readily available for purchase on the market.
 
 The RISC-V-based SiFive HiFive1 Rev B (\texttt{fu310} SoC with one \texttt{e31} RV32IMAC core) platform has been selected. This platform meets the necessary requirements for
-compatibility with both QEMU and Renode, provides extensive documentation including cache parameters, and features built-in hardware performance counters that will be used in
-(\ref{sec:hpc}). The payload against which we will be verifying the cache model results is the Zephyr RTOS-based matrix multiplication algorithm (naive approach). Due to the
+compatibility with both QEMU and Renode, provides extensive documentation including cache parameters, and features built-in hardware performance counters.
+The cache configuration for the \texttt{e31} core includes a 16 KiB 2-way set-associative instruction cache with a 32-byte block line size with \textit{random} eviction policy and
+no data cache \cite{fe310docs}.
+
+The payload against which the verification was performed is the Zephyr RTOS-based matrix multiplication algorithm (naive approach). Due to the
 platform's limited RAM size, the benchmark sample had to be limited to a matrix of size 16 by 16\footnote{Matrices of size $32^2$ resulted in a stack crash (manifesting itself in
-a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. The cache configuration for the \texttt{e31}
-core includes a 16 KiB 2-way set-associative instruction cache with a 32-byte block line size with \textit{random} eviction policy and no data cache \cite{fe310docs}.
+a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. 
+
+\subsection*{Verification against QEMU TCG Cache Modeling plugin}
 
 \noindent The QEMU was invoked with the following parameters:
 \begin{verbatim}
@@ -129,12 +132,13 @@ qemu-system-riscv32 -nographic           \
 	        evict=rand                        # random eviction policy
 \end{verbatim}
 
+\noindent The simulation results were saved to a file, and are present in the table (\ref{table:cache_results}).
 
-\subsection{Verification against hardware} \label{sec:hpc}
-To ensure the accuracy of the cache model, it was compared against hardware measurements. This involved running identical workloads on both the model and the actual hardware, then
-comparing hit rate and miss rate. This 
 
-\subsection{Verification results}
+\subsection*{Verification against hardware}
+
+
+\subsection*{Verification results}
 
 \begin{center}
 \begin{table}[h!]
