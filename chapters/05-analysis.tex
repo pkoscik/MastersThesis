@@ -118,11 +118,11 @@ no data cache \cite{fe310docs}.
 The payload against which the verification was performed is the Zephyr RTOS-based matrix multiplication algorithm (naive approach). Due to the
 platform's limited RAM size, the benchmark sample had to be limited to a matrix of size 16 by 16\footnote{Matrices of size $32^2$ resulted in a stack crash (manifesting itself in
 a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. The cache usage statistics are gathered
-starting from the platform reset, and ended at the \texttt{finished()} symbol entry point, a helper function that marks the end of the matrix multiplication algorithm.
+starting from the platform reset, and ended at the \texttt{finished()} symbol entry point, a helper function that marks the end of the matrix multiplication algorithm.\label{snip:measurement_window}
 
 \subsubsection{Novel cache model \& Renode ExecutionTracer} % XXX: replace "novel"
 In order to easily gather the cache statistics from the novel cache model, using the Renode framework as a trace generation backend, an \textbf{"Automated Renode Cache Test Executor"} % XXX: replace "novel"
-toolset was prepared. Is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model:
+toolset was prepared. Is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model: % XXX: toolset?
 
 
 \begin{center}
@@ -237,8 +237,79 @@ Table \ref{table:cache_results}.
 
 \subsubsection{Hardware Performance Counters}
 The \texttt{fu310} system-on-chip has a built-in Hardware Performance Monitor (HPM), that can be configured to measure a variety of performance statistics. These counters are configured
-using the RISC-V Control and Status Registers (CSRs) \cite{fe310docs, riscvisa}. Although the Zephyr RTOS provides a set of C macros to interface with CSRs, 
+using the RISC-V Control and Status Registers (CSRs) \cite{fe310docs, riscvisa}.
+Although the Zephyr RTOS provides a set of C macros to interface with CSRs, it is not possible to use this interface to inject the HPM configuration at the early stages of the
+operating system bringup - a necessary step to collect the cache statistics for the measurement window described in Section (\ref{snip:measurement_window}). To work around this limitation,
+a \textit{simplified} Zephyr RTOS bootup sequence for the RISC-V platform is examined:
 
+\begin{verbatim}
+arch/riscv/core/reset.S
+__reset
+    -> __initialize
+        -> boot_first_core
+            -> z_prep_c (first C code)
+
+arch/riscv/core/prep_c.c
+z_prep_c()
+    -> z_bss_zero()
+        -> z_data_copy()
+            -> z_cstart() (first kernel-level platform independent code)
+\end{verbatim}
+
+\noindent The \texttt{z\_prep\_c} function was chosen as a suitable place to insert the HPM configuration code because initializing it earlier in \texttt{reset.S} (written in
+assembly) offers no significant advantage, and,  writing the configuration in C provides better readability, maintainability, and ease of configuration. The performance counter
+was set up and cleared according to the RISC-V Instruction Set Manual - Privileged Architecture:
+
+\begin{center}
+\centering
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[
+	style=lstC,
+    caption={RISC-V Hardware Performance Monitor configuration}
+    ]
+void z_prep_c(void)
+{
+#ifdef HPM_INIT
+  unsigned int val = 0u;
+  unsigned int bitmask = (1UL << 8) | (2UL); /* EVENTID:8 EVENTCLASS:2 */
+  __asm__ volatile("csrr %0, mhpmevent4" : "=r"(val));
+  val = (val & ~bitmask) | bitmask;
+  __asm__ volatile("csrw mhpmevent4, %0" : : "r"(val));
+  __asm__ volatile("csrw mhpmcounter4, zero");
+  __asm__ volatile("csrw mhpmcounter4h, zero");
+#endif
+  z_bss_zero();
+  z_data_copy();
+  z_cstart();
+  CODE_UNREACHABLE;
+}
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\noindent To comply with the measurement window described in Section (\ref{snip:measurement_window}), the performance counters are later accessed and their values are read in the
+\textit{finished()} function:
+
+\begin{center}
+\centering
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[
+	style=lstC,
+    caption={Accessing RISC-V HPM counters}
+    ]
+void __attribute__ ((noinline)) finished(void)
+{
+#ifdef HPM_INIT
+	unsigned long lo = 0l;
+	__asm__ volatile("csrr %0, mhpmcounter3" : "=r"(lo));
+	printf("hpm3 data: %lu\n", lo);
+#else
+	__asm__ volatile("addi x0, x0, 0");
+#endif
+}
+\end{lstlisting}
+\end{minipage}
+\end{center}
 
 \subsection{Verification results}
 
