@@ -113,13 +113,18 @@ compatibility with both QEMU and Renode, provides extensive documentation includ
 The cache configuration for the \texttt{e31} core includes a 16 KiB 2-way set-associative instruction cache with a 32-byte block line size with \textit{random} eviction policy and
 no data cache \cite{fe310docs}.
 
+\subsection{Generating cache statistics}
+
 The payload against which the verification was performed is the Zephyr RTOS-based matrix multiplication algorithm (naive approach). Due to the
 platform's limited RAM size, the benchmark sample had to be limited to a matrix of size 16 by 16\footnote{Matrices of size $32^2$ resulted in a stack crash (manifesting itself in
-a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. 
+a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. The cache usage statistics are gathered
+starting from the platform reset, and ended at the \texttt{finished()} symbol entry point, a helper function that marks the end of the matrix multiplication algorithm.
 
-\subsection*{Verification against QEMU TCG Cache Modeling plugin}
+\subsubsection{Novel cache model \& Renode ExecutionTracer} % XXX: replace "novel"
 
-\noindent The QEMU was invoked with the following parameters:
+
+\subsubsection{QEMU TCG Cache Modeling plugin}
+The QEMU was invoked with the following parameters:
 \begin{verbatim}
 qemu-system-riscv32 -nographic           \
 	-machine sifive_e                       \ # simulate fu310 SoC
@@ -129,16 +134,28 @@ qemu-system-riscv32 -nographic           \
 	        icachesize=16384,               \ # 16 KiB cache size
 	        iassoc=2,                       \ # 2-way set-associativity
 	        iblksize=32,                    \ # 32 bytes block size
-	        evict=rand                        # random eviction policy
+	        evict=rand                      \ # random eviction policy
+	-s -S                                     # enable GDB stub and wait for connection
 \end{verbatim}
 
-\noindent The simulation results were saved to a file, and are present in the table (\ref{table:cache_results}).
+\noindent The virtual platform was then connected to using \texttt{riscv64-zephyr-elf-gdb}, a breakpoint was placed on the \texttt{finished()} symbol, and the execution was started:
+\begin{verbatim}
+riscv64-zephyr-elf-gdb payload.elf   \
+	-ex 'target extended-remote :1234'  \ # connect to QEMU GDB stub
+	-ex 'break finished'                \ # stop execution upon entering finished()
+	-ex 'continue'                        # start executing the payload
+\end{verbatim}
+
+\noindent After the program halted at the breakpoint, the QEMU simulation was stopped, and the resulting cache simulation data were saved to a file. These results are presented in
+Table \ref{table:cache_results}.
 
 
-\subsection*{Verification against hardware}
+\subsubsection{Hardware Performance Counters}
+The \texttt{fu310} system-on-chip has a built-in Hardware Performance Monitor (HPM), that can be configured to measure a variety of performance statistics. These counters are configured
+using the RISC-V Control and Status Registers (CSRs) \cite{fe310docs, riscvisa}. Although the Zephyr RTOS provides a set of C macros to interface with CSRs, 
 
 
-\subsection*{Verification results}
+\subsection{Verification results}
 
 \begin{center}
 \begin{table}[h!]
@@ -157,5 +174,5 @@ Hardware performance counters          & -        & 292         & - & -\\ \hline
 
 \section{Benchmarks}
 \subsection{Automated matrix multiplication payload builder}
-\subsection{Automated Renode test executor}
+\subsection{Automated Renode test executor} \label{sec:renodetestexecutor}
 \subsection{Benchmark results}
