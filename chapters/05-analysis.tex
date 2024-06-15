@@ -18,7 +18,7 @@ it is backed by major companies in the technology sector, including, among other
 
 \noindent This payload will be used for testing \textit{different software configurations}, while the simulated \textit{hardware remains unchanged}.
 
-\subsubsection{Naive approach}
+\subsubsection*{Naive approach}
 The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method, is called naive, as it is simple, but not cache-friendly
 due to its poor data locality.
 
@@ -49,10 +49,10 @@ for (i = 0; i < SIZE; i++) {
 \end{minipage}
 \end{center}
 
-\noindent If matrices are represented as a 1D array in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
-The naive algorithm frequently jumps between distant memory locations\footnote{Assuming $\text{cache size} \ll \text{matrix size}$.}, leading to cache misses.
+\noindent If the matrices are represented as a 1D array in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
+The naive algorithm frequently jumps between distant memory locations, leading to cache misses.
 
-\subsubsection{Block based approach}
+\subsubsection*{Block based approach}
 The block-based approach improves cache performance by dividing the matrices into smaller sub-matrices (blocks) that fit into the cache.
 
 \begin{center}
@@ -156,15 +156,54 @@ assert test.cache.invalidations == 0
 \end{minipage}
 \end{center}
 
-\subsection{Verification against QEMU TCG Modeling plugin}
-The cache model was verified against the QEMU TCG (Tiny Code Generator) modeling plugin. The plugin provides a framework for simulating various cache configurations and comparing
-their performance with the actual hardware model.
+\subsection{Verification against QEMU TCG Cache Modeling plugin}
+The cache model was also verified against the QEMU TCG Cache Modeling plugin, introduced in section (\ref{sec:qemu_cache}).
+Since this cache model is only supported for virtual QEMU platforms, it was necessary to find a platform that is compatible with both QEMU and Renode - the simulator that generates
+the trace files for the model created in this work.
 
-\subsection{Verification against hardware}
+The RISC-V-based SiFive HiFive1 Rev B (\texttt{fu310} SoC with one \texttt{e31} RV32IMAC core) platform has been selected. This platform meets the necessary requirements for
+compatibility with both QEMU and Renode, provides extensive documentation including cache parameters, and features built-in hardware performance counters that will be used in
+(\ref{sec:hpc}). The payload against which we will be verifying the cache model results is the Zephyr RTOS-based matrix multiplication algorithm (naive approach). Due to the
+platform's limited RAM size, the benchmark sample had to be limited to a matrix of size 16 by 16\footnote{Matrices of size $32^2$ resulted in a stack crash (manifesting itself in
+a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. The cache configuration for the \texttt{e31}
+core includes a 16 KiB 2-way set-associative instruction cache with a 32-byte block line size with \textit{random} eviction policy and no data cache \cite{fe310docs}.
+
+\noindent The QEMU was invoked with the following parameters:
+\begin{verbatim}
+qemu-system-riscv32 -nographic           \
+	-machine sifive_e                       \ # simulate fu310 SoC
+	-icount align=off,sleep=off             \ # decouple virtual and host time
+	-kernel payload.elf                     \ # payload executable
+	-plugin ./contrib/plugins/libcache.so,  \ # use TCG Cache modelling plugin
+	        icachesize=16384,               \ # 16 KiB cache size
+	        iassoc=2,                       \ # 2-way set-associativity
+	        iblksize=32,                    \ # 32 bytes block size
+	        evict=rand                        # random eviction policy
+\end{verbatim}
+
+
+\subsection{Verification against hardware} \label{sec:hpc}
 To ensure the accuracy of the cache model, it was compared against hardware measurements. This involved running identical workloads on both the model and the actual hardware, then
 comparing hit rate and miss rate. This 
 
-\subsection{Benchmarks}
+\subsection{Verification results}
 
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Environment} & \textbf{Accesses} & \textbf{Misses} & \textbf{Hits} & \textbf{HMR} \\ \hline
+Renode generated trace + Cache model    & 91468        & 291         & a & a\\ \hline
+QEMU TCG Cache Modeling Plugin          & 91470        & 292         & a & a\\ \hline
+Hardware performance counters          & -        & 292         & - & -\\ \hline
+\end{tabular}
+\caption{Instruction accesses and misses for QEMU and Renode environments}
+\label{table:cache_results}
+\end{table}
+\end{center}
 
-\section{Results}
+\section{Benchmarks}
+\subsection{Automated matrix multiplication payload builder}
+\subsection{Automated Renode test executor}
+\subsection{Benchmark results}
