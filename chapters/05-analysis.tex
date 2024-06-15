@@ -121,6 +121,91 @@ a \textit{Load access fault} exception), while sizes $64^2$ and above resulted i
 starting from the platform reset, and ended at the \texttt{finished()} symbol entry point, a helper function that marks the end of the matrix multiplication algorithm.
 
 \subsubsection{Novel cache model \& Renode ExecutionTracer} % XXX: replace "novel"
+In order to easily gather the cache statistics from the novel cache model, using the Renode framework as a trace generation backend, an \textbf{"Automated Renode Cache Test Executor"} % XXX: replace "novel"
+toolset was prepared. Is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model:
+
+
+\begin{center}
+\centering
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[
+    language=Bash,
+    caption={Automated Renode Cache Test Executor}
+    ]
+#!/usr/bin/env bash
+
+DIRECTORY=$1
+PRESET=$2
+TRACE_DIR="$(realpath traces)"
+RESULT_DIR="$(realpath results)"
+RENODE_LOG="RENODE_LOG"
+
+for ELF_FILE in "$DIRECTORY"/*.elf; do
+	if [ -f "$ELF_FILE" ]; then
+		ELF_PATH="$(realpath $ELF_FILE)"
+		ELF_FNAME=$(basename -- "$ELF_FILE" .elf)
+		TRACE_PATH="$TRACE_DIR/$ELF_FNAME.log"
+		RESULT_PATH="$RESULT_DIR/$ELF_FNAME.txt"
+
+		echo "[$(date +%H:%M:%S)] Genrating traces using Renode for $ELF_FNAME" tee -a "$RENODE_LOG"
+
+		RENODE_ELF="@$ELF_PATH" RENODE_TRACE="@$TRACE_PATH" renode --console --disable-gui 1>>"$RENODE_LOG" cache.resc &&
+		renode_cache_mdl.py "$TRACE_PATH" presets "$PRESET" > "$RESULT_PATH"
+
+		echo "[$(date +%H:%M:%S)] finished" | tee -a "$RENODE_LOG"
+		echo "" | tee -a "$RENODE_LOG"
+	fi
+done
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+% \noindent The Renode script (\texttt{.resc}) file is uses the passed environment variables to set up the simulation.
+\noindent The Renode script (\texttt{.resc}) file is designed to set up the simulation environment using the passed environment variables. It loads the platform description from
+the \texttt{cache\_platform.repl} file - in this case this file had contained the \texttt{fu310} SoC platform description - and an ELF file specified by the environment variables.
+
+
+\begin{center}
+\centering
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[
+    caption={Renode script for Automated Renode Cache Test Executor}
+    ]
+set cacheSimulationExecutionCtrl
+"""
+from Antmicro.Renode.Peripherals.CPU import ICPU
+sysbus = self.Machine.SystemBus
+cpu = self.Machine.GetPeripheralsOfType(ICPU)[0]
+
+def end_hook(cpu, addr):
+    cpu.Pause()
+    monitor.Parse("q")
+
+for addr in sysbus.GetAllSymbolAddresses("finished"):
+    cpu.AddHook(addr, end_hook)
+"""
+
+using sysbus
+mach create
+machine LoadPlatformDescription @cache_platform.repl
+sysbus LoadELF `get_environ RENODE_ELF`
+
+cpu MaximumBlockSize 1
+cpu CreateExecutionTracing "tracer" `get_environ RENODE_TRACE` PCAndOpcode
+tracer TrackMemoryAccesses
+
+python $cacheSimulationExecutionCtrl
+start
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\noindent The script was executed with two arguments passed. The first argument sets the directory containing the payload ELF file, and the second argument set the cache preset to \texttt{fu310.e31}:
+\begin{verbatim}
+./automated_renode_cache_exec.sh elfs/ "fu310.e31"
+\end{verbatim}
+
+\noindent The Renode script was executed, and the resulting cache simulation data were saved to a file. These results are presented in Table \ref{table:cache_results}.
 
 
 \subsubsection{QEMU TCG Cache Modeling plugin}
@@ -146,7 +231,7 @@ riscv64-zephyr-elf-gdb payload.elf   \
 	-ex 'continue'                        # start executing the payload
 \end{verbatim}
 
-\noindent After the program halted at the breakpoint, the QEMU simulation was stopped, and the resulting cache simulation data were saved to a file. These results are presented in
+\noindent After the program halted at the breakpoint, the QEMU simulator was terminated, and the resulting cache simulation data were saved to a file. These results are presented in % TODO: too much passive voice? this reads weeeird
 Table \ref{table:cache_results}.
 
 
@@ -165,7 +250,7 @@ using the RISC-V Control and Status Registers (CSRs) \cite{fe310docs, riscvisa}.
 \textbf{Environment} & \textbf{Accesses} & \textbf{Misses} & \textbf{Hits} & \textbf{HMR} \\ \hline
 Renode generated trace + Cache model    & 91468        & 291         & a & a\\ \hline
 QEMU TCG Cache Modeling Plugin          & 91470        & 292         & a & a\\ \hline
-Hardware performance counters          & -        & 292         & - & -\\ \hline
+Hardware performance counters          & -        & 292         & - & -\\ \hline % TODO: XXX: NASTY: i think it might be possible to get the accesses using the minstret csr?
 \end{tabular}
 \caption{Instruction accesses and misses for QEMU and Renode environments}
 \label{table:cache_results}
