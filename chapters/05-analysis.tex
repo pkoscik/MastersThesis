@@ -525,7 +525,7 @@ highest hit rate of 99.71\%, substantially better than the naive approach.
 increases as the block size decreases, with block sizes of 8, 32, and 128 requiring 288,790,285 (65.4\% increase), 277,988,449 (59.2\% increase), and 275,419,880 (57.7\% increase)
 instructions, respectively.
 
-\subsection*{Linux kernel boot sequence}
+\subsection*{Linux kernel boot sequence} \label{sec:linux_boot_perf_conc}
 
 Increasing the cache size has reduced the number of cache misses, doubling the instruction cache size decreased misses by approximately 62.6\% (from 3,648,528 to 1,363,438), and
 quadrupling it further reduced misses by about 87.9\% (down to 438,583). Decreasing the cache size leads to a significant rise in cache misses, halving the instruction cache size

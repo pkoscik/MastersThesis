@@ -1,4 +1,34 @@
 
 \chapter{Conclusions}
 
+This thesis has explored the efficacy of using trace-based approaches for evaluating CPU cache usage and performance. Several key points should be noted:
+
+\subsubsection*{Effectiveness of trace-based evaluation}
+
+Trace-based evaluation has been proven to be an effective solution for profiling CPU cache performance.
+By utilizing trace data, it is possible to gain detailed insights into cache behavior, such as cache hits, misses, and the overall hit-to-miss ratio (HMR). This method allows
+for precise analysis of how different cache configurations impact system performance, enabling the identification of bottlenecks and opportunities for optimization.
+For example, the data from the matrix multiplication benchmarks clearly showed how different block sizes and cache configurations affect the number of cache misses and the
+efficiency of cache usage.
+
+\subsubsection*{Impact of cache size and configuration}
+
+The Linux kernel payload benchmark results observed and described in the section (\ref{sec:linux_boot_perf_conc}) confirm that cache size and configuration significantly impact CPU
+performance. Factors such as cache size, block size, and associativity play crucial roles in determining system efficiency. Increasing the cache size generally leads to a reduction
+in cache misses, which improves overall system efficiency, at the cost of more complicated hardware design. Additionally, optimizing block size and cache associativity can
+further enhance performance.
+
+
+\subsubsection*{Simulation and real hardware correlation}
+
+\subsubsection*{Practical implications for system design}
+
 \section{Future work}
+
+Future research could extend this work by exploring trace-based evaluation in more complex and diverse computing environments. Areas for further investigation include:
+
+\subsubsection*{Multi-core and multi-threaded environments}
+
+\subsubsection*{Advanced cache models}
+
+\subsubsection*{Hardware integration}
