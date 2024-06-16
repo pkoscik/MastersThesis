@@ -452,3 +452,41 @@ executed instructions by the CPU.
 \subsection{Linux kernel boot sequence}
 
 \section{Benchmark conclusions}
+
+\subsection*{Matrix Multiplication}
+
+The table with cache statistics for the naive approach (Table \ref{tab:performance_metrics}) displays the effects of non-cache optimized algorithms. The data reveals a significant
+increase in L1D\$ cache misses as matrix size grows, which highlights the inefficiency of the naive method in utilizing cache memory effectively. The hit rate drops markedly from
+98.59\% for the smallest matrix to 74.88\% for the largest, demonstrating the strain placed on the cache by larger matrices. This inefficiency leads to a higher number of memory
+accesses and executed instructions, resulting in suboptimal performance.
+
+\begin{center}
+	\centering
+	\includegraphics[width=0.75\textwidth]{figures/05-analysis/mm_naive_results.pdf}
+	\captionof{figure}{HMR visualization for the naive matrix multiplication algorithm}
+	\label{fig:mm_naive_results}
+\end{center}
+
+\noindent The cache-optimized block-based approach, detailed in Tables (\ref{tab:performance_metrics_16}) to (\ref{tab:performance_metrics_256}), demonstrates significantly
+improved cache utilization. By dividing the matrices into smaller blocks, this method enhances data locality and reduces cache misses, particularly for larger matrices. The block
+size plays a critical role in optimizing cache performance, as reflected in the varying hit rates. For instance, with a matrix size of \( 128^2 \), a block size of 32 achieves the
+highest hit rate of 99.71\%, substantially better than the naive approach.
+
+\begin{figure}[!htbp]
+    \centering
+    \begin{subfigure}{0.5\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{figures/05-analysis/block_ms128.pdf}
+    \end{subfigure}%
+    \begin{subfigure}{0.5\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{figures/05-analysis/block_ms256.pdf}
+    \end{subfigure}
+    \caption{HMR visualization for a block-based algorithm for matrices of sizes 128 and 256 with various block sizes}
+\end{figure}
+
+\noindent It is important to note that decreasing block size has caused an increase in the total instructions executed. For example, the naive approach for matrix size \( 256^2 \) required
+174,620,452 instructions, while the block-based approach with block size of 32 required 277,988,449 instructions - a 59\% increase. Overall, the amount of instructions executed
+increases as the block size decreases, with block sizes of 8, 32, and 128 requiring 288,790,285 (65.4\% increase), 277,988,449 (59.2\% increase), and 275,419,880 (57.7\% increase)
+instructions, respectively.
+
