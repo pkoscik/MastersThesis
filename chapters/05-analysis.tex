@@ -301,8 +301,8 @@ void __attribute__ ((noinline)) finished(void)
 {
 #ifdef HPM_INIT
 	unsigned long lo = 0l;
-	__asm__ volatile("csrr %0, mhpmcounter3" : "=r"(lo));
-	printf("hpm3 data: %lu\n", lo);
+	__asm__ volatile("csrr %0, mhpmcounter4" : "=r"(lo));
+	printf("hpm4 data: %lu\n", lo);
 #else
 	__asm__ volatile("addi x0, x0, 0");
 #endif
