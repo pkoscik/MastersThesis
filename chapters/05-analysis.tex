@@ -479,6 +479,7 @@ Quartered caches size & 9970037 & 8239 & 97.02\% & 98.94\% \\ \hline
 Doubled caches block size & 3253047 & 4130 & 99.03\% & 99.47\% \\ \hline
 Halved caches block size & 4600941 & 16451 & 98.63\% & 97.88\% \\ \hline
 Halved associativity & 4424764 & 8241 & 98.68\% & 98.94\% \\ \hline
+Fully associative cache & 2896796 & 8237 & 99.13\% & 98.94\% \\ \hline
 \end{tabular}
 \caption{Performance metrics for various cache configurations - Linux boot}
 \label{tab:performance_metrics_linux}
@@ -535,3 +536,5 @@ Adjusting the cache block size greatly influenced both caches. Doubling the bloc
 to 4,130) and L1I\$ cache misses by 10.8\% (from 3,648,528 to 3,253,047). Decreasing the block size to 32 bytes resulted in a 99.6\% increase in L1D\$ cache misses (to 16,451) and
 L1I\$ cache misses by 26.2\% (to 4,600,941).
 
+Halving the associativity of the instruction cache increased L1I\$ cache misses by 21.6\% (to 4,424,764). Using a fully associative cache reduced L1I\$ cache misses by 20.6\% (to
+2,896,796). Changing the mapping configuration had little to no effect on the data cache.
