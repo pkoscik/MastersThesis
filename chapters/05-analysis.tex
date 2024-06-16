@@ -367,30 +367,28 @@ executed instructions by the CPU.
 128 & 22707108 & 8855971 & 1768972 & 7086999 & 80.03\% \\ \hline
 256 & 174620452 & 68952483 & 17320212 & 51632271 & 74.88\% \\ \hline
 \end{tabular}
-\caption{Performance Metrics for Different Sizes}
+\caption{Performance metrics for matrix multiplication - naive approach}
 \label{tab:performance_metrics}
 \end{table}
 \end{center}
 
 \subsubsection{Block based approach}
 
-\paragraph{Matrix Size 16}
 \begin{center}
-\begin{table}[h!]
+\begin{table}[!htbp]
 \centering
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
 \textbf{Block Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
 8 & 124411 & 32323 & 223 & 32100 & 99.31\% \\ \hline
 \end{tabular}
-\caption{Performance Metrics for Matrix Size 16}
+\caption{Performance metrics for matrix multiplication - block based approach - matrix size 16}
 \label{tab:performance_metrics_16}
 \end{table}
 \end{center}
 
-\paragraph{Matrix Size 32}
 \begin{center}
-\begin{table}[h!]
+\begin{table}[!htbp]
 \centering
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
@@ -398,14 +396,13 @@ executed instructions by the CPU.
 8 & 681401 & 168517 & 410 & 168107 & 99.76\% \\ \hline
 16 & 665005 & 168532 & 414 & 168118 & 99.75\% \\ \hline
 \end{tabular}
-\caption{Performance Metrics for Matrix Size 32}
+\caption{Performance metrics for matrix multiplication - block based approach - matrix size 32}
 \label{tab:performance_metrics_32}
 \end{table}
 \end{center}
 
-\paragraph{Matrix Size 64}
 \begin{center}
-\begin{table}[h!]
+\begin{table}[!htbp]
 \centering
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
@@ -414,14 +411,13 @@ executed instructions by the CPU.
 16 & 4722673 & 1172054 & 2849 & 1169205 & 99.76\% \\ \hline
 32 & 4661425 & 1172054 & 3084 & 1168970 & 99.74\% \\ \hline
 \end{tabular}
-\caption{Performance Metrics for Matrix Size 64}
+\caption{Performance metrics for matrix multiplication - block based approach - matrix size 64}
 \label{tab:performance_metrics_64}
 \end{table}
 \end{center}
 
-\paragraph{Matrix Size 128}
 \begin{center}
-\begin{table}[h!]
+\begin{table}[!htbp]
 \centering
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
@@ -431,14 +427,13 @@ executed instructions by the CPU.
 32 & 35562485 & 8856152 & 25949 & 8830203 & 99.71\% \\ \hline
 64 & 35325616 & 8856150 & 140394 & 8715756 & 98.41\% \\ \hline
 \end{tabular}
-\caption{Performance Metrics for Matrix Size 128}
+\caption{Performance metrics for matrix multiplication - block based approach - matrix size 128}
 \label{tab:performance_metrics_128}
 \end{table}
 \end{center}
 
-\paragraph{Matrix Size 256}
 \begin{center}
-\begin{table}[h!]
+\begin{table}[!htbp]
 \centering
 \begin{tabular}{|c|c|c|c|c|c|}
 \hline
@@ -449,7 +444,7 @@ executed instructions by the CPU.
 64 & 276351989 & 68952664 & 14314624 & 54638040 & 79.24\% \\ \hline
 128 & 275419880 & 68952679 & 17078642 & 51874037 & 75.23\% \\ \hline
 \end{tabular}
-\caption{Performance Metrics for Matrix Size 256}
+\caption{Performance metrics for matrix multiplication - block based approach - matrix size 256}
 \label{tab:performance_metrics_256}
 \end{table}
 \end{center}
