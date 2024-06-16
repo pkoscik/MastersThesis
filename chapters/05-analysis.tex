@@ -18,7 +18,7 @@ it is backed by major companies in the technology sector, including, among other
 
 \noindent This payload will be used for testing \textit{different software configurations}, while the simulated \textit{hardware remains unchanged}.
 
-\subsubsection*{Naive approach}
+\subsubsection*{Naive approach} \label{sec:mmnaive}
 The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method, is called naive, as it is simple, but not cache-friendly
 due to its poor data locality.
 
@@ -52,7 +52,7 @@ for (i = 0; i < SIZE; i++) {
 \noindent If the matrices are represented as a 1D array in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
 The naive algorithm frequently jumps between distant memory locations, leading to cache misses.
 
-\subsubsection*{Block based approach}
+\subsubsection*{Block based approach} \label{sec:mmblock}
 The block-based approach improves cache performance by dividing the matrices into smaller sub-matrices (blocks) that fit into the cache.
 
 \begin{center}
@@ -113,7 +113,7 @@ compatibility with both QEMU and Renode, provides extensive documentation includ
 The cache configuration for the \texttt{e31} core includes a 16 KiB 2-way set-associative instruction cache with a 32-byte block line size with \textit{random} eviction policy and
 no data cache \cite{fe310docs}.
 
-\subsection{Generating cache statistics}
+\subsection{Generating cache statistics} \label{sec:gencachestats}
 
 The payload against which the verification was performed is the Zephyr RTOS-based matrix multiplication algorithm (naive approach). Due to the
 platform's limited RAM size, the benchmark sample had to be limited to a matrix of size 16 by 16\footnote{Matrices of size $32^2$ resulted in a stack crash (manifesting itself in
@@ -244,16 +244,10 @@ a \textit{simplified} Zephyr RTOS bootup sequence for the RISC-V platform is exa
 
 \begin{verbatim}
 arch/riscv/core/reset.S
-__reset
-    -> __initialize
-        -> boot_first_core
-            -> z_prep_c (first C code)
+__reset -> __initialize -> boot_first_core -> z_prep_c (first C code)
 
 arch/riscv/core/prep_c.c
-z_prep_c()
-    -> z_bss_zero()
-        -> z_data_copy()
-            -> z_cstart() (first kernel-level platform independent code)
+z_prep_c() -> z_bss_zero() -> z_data_copy() -> z_cstart() (zephyr kernel)
 \end{verbatim}
 
 \noindent The \texttt{z\_prep\_c} function was chosen as a suitable place to insert the HPM configuration code because initializing it earlier in \texttt{reset.S} (written in
@@ -336,5 +330,130 @@ compared to the emulated cache models, could be attributed to the later initiali
 been counted. It is important to note that it is impossible to obtain the instruction access count from the HPMs, as there is no specific counter for this purpose.
 
 \section{Benchmarks}
-\subsection{Automated matrix multiplication payload builder}
-\subsection{Benchmark results}
+
+The benchmarks were performed using the simulated HiFive Unmatched platform (\texttt{fu740} SoC with one \texttt{s7} RV64IMAC and four \texttt{u74} RV64GC cores) \cite{fu740docs}.
+This platform was chosen due to its support for both the Zephyr and Linux operating systems, and its relatively large RAM size, which allows for the execution of more substantial
+and cache-intensive payloads. Additionally, this machine platform description is provided with the Renode framework.
+The matrix multiplication payloads will be used to analyze the impacts of optimizing payload configuration on cache usage, while the Linux boot process will be used to measure the
+impact of changing cache configurations.
+
+\subsection{Matrix multiplication}
+
+The benchmarks for matrix multiplication use the same code and measurement window as the described in Section (\ref{sec:gencachestats}) - measurement begins as soon
+as the platform is initialized, and ends upon reaching the \texttt{finished()} symbol.
+The following payload configurations were tested:
+\begin{itemize}
+	\item Naive approach with matrix sizes of $8^2$, $16^2$, $32^2$, $64^2$, $128^2$, and $256^2$.
+	\item Block-based approach with matrix sizes of $16^2$, $32^2$, $64^2$, $128^2$, and $256^2$. For each matrix size, block sizes were chosen such that $bs = 2^n$ where
+		$n \in \{3, 4, \ldots, \log_2(\text{size}) - 1\}$. For example, for a matrix size of $256^2$, block sizes of $8$, $16$, $32$, $64$, and $128$ were used.
+\end{itemize}
+
+\noindent The benchmarks will focus solely on the first level of data cache (abbreviated to \texttt{L1D\$}), as changes in algorithm and matrix size have not produced any
+significant differences in the instruction cache results. Additionally, the \textit{Instruction Executed} statistic is provided to analyze the impact of block size on the number of
+executed instructions by the CPU.
+
+\subsubsection{Naive approach}
+
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
+8 & 42594 & 12451 & 176 & 12275 & 98.59\% \\ \hline
+16 & 98458 & 32163 & 224 & 31939 & 99.30\% \\ \hline
+32 & 465156 & 168355 & 415 & 167940 & 99.75\% \\ \hline
+64 & 3078628 & 1171875 & 2928 & 1168947 & 99.75\% \\ \hline
+128 & 22707108 & 8855971 & 1768972 & 7086999 & 80.03\% \\ \hline
+256 & 174620452 & 68952483 & 17320212 & 51632271 & 74.88\% \\ \hline
+\end{tabular}
+\caption{Performance Metrics for Different Sizes}
+\label{tab:performance_metrics}
+\end{table}
+\end{center}
+
+\subsubsection{Block based approach}
+
+\paragraph{Matrix Size 16}
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Block Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
+8 & 124411 & 32323 & 223 & 32100 & 99.31\% \\ \hline
+\end{tabular}
+\caption{Performance Metrics for Matrix Size 16}
+\label{tab:performance_metrics_16}
+\end{table}
+\end{center}
+
+\paragraph{Matrix Size 32}
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Block Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
+8 & 681401 & 168517 & 410 & 168107 & 99.76\% \\ \hline
+16 & 665005 & 168532 & 414 & 168118 & 99.75\% \\ \hline
+\end{tabular}
+\caption{Performance Metrics for Matrix Size 32}
+\label{tab:performance_metrics_32}
+\end{table}
+\end{center}
+
+\paragraph{Matrix Size 64}
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Block Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
+8 & 4838437 & 1172037 & 3015 & 1169022 & 99.74\% \\ \hline
+16 & 4722673 & 1172054 & 2849 & 1169205 & 99.76\% \\ \hline
+32 & 4661425 & 1172054 & 3084 & 1168970 & 99.74\% \\ \hline
+\end{tabular}
+\caption{Performance Metrics for Matrix Size 64}
+\label{tab:performance_metrics_64}
+\end{table}
+\end{center}
+
+\paragraph{Matrix Size 128}
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Block Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
+8 & 36913565 & 8856133 & 61860 & 8794273 & 99.3\% \\ \hline
+16 & 35988573 & 8856150 & 33847 & 8822303 & 99.62\% \\ \hline
+32 & 35562485 & 8856152 & 25949 & 8830203 & 99.71\% \\ \hline
+64 & 35325616 & 8856150 & 140394 & 8715756 & 98.41\% \\ \hline
+\end{tabular}
+\caption{Performance Metrics for Matrix Size 128}
+\label{tab:performance_metrics_128}
+\end{table}
+\end{center}
+
+\paragraph{Matrix Size 256}
+\begin{center}
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Block Size} & \textbf{Instr. Exec.} & \textbf{Mem. Acc.} & \textbf{L1D\$ Misses} & \textbf{L1D\$ Hits} & \textbf{L1D\$ HMR} \\ \hline
+8 & 288790285 & 68952645 & 451736 & 68500909 & 99.34\% \\ \hline
+16 & 281395673 & 68952664 & 253546 & 68699118 & 99.63\% \\ \hline
+32 & 277988449 & 68952664 & 1617083 & 67335581 & 97.65\% \\ \hline
+64 & 276351989 & 68952664 & 14314624 & 54638040 & 79.24\% \\ \hline
+128 & 275419880 & 68952679 & 17078642 & 51874037 & 75.23\% \\ \hline
+\end{tabular}
+\caption{Performance Metrics for Matrix Size 256}
+\label{tab:performance_metrics_256}
+\end{table}
+\end{center}
+
+\subsection{Linux kernel boot sequence}
+
+\section{Benchmark conclusions}
