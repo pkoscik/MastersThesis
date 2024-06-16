@@ -451,6 +451,39 @@ executed instructions by the CPU.
 
 \subsection{Linux kernel boot sequence}
 
+The benchmarks will focus on both the first level of data cache (abbreviated as \texttt{L1D\$}) and the first level instruction cache (abbreviated as \texttt{L1I\$}). The software
+configuration will remain unchanged, with the only variable being the simulated cache configuration. The trace gathering window will commence as soon as the Linux kernel takes
+control of the CPU and will conclude upon reaching the user-space login prompt. The following configurations have been tested:
+
+\begin{itemize}
+    \item Standard platform configuration: 32 KiB instruction and data caches, 64-byte cache blocks, 4-way set associative instruction cache, and 8-way set associative data cache.
+    \item Modified cache sizes: 64 KiB (2x), 128 KiB (4x), 16 KiB (0.5x), 8 KiB (0.25x).
+    \item Reduced associativity: 2-way set associative instruction cache, 4-way set associative data cache.
+    \item Fully associative caches: Fully associative instruction and data caches.
+    \item Modified cache block sizes: 128 bytes (2x), 32 bytes (0.5x).
+\end{itemize}
+
+\noindent For every test run, the total number of instructions executed was 33,470,111, with 775,974 memory accesses (reads: 41,937, writes: 35,659).
+
+\begin{center}
+\begin{table}[!htbp]
+\centering
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Cache configuration}  & \textbf{L1I\$ Misses} & \textbf{L1D\$ Misses} & \textbf{L1I\$ HMR} & \textbf{L1D\$ HMR}\\ \hline
+Standard configuration & 3648528 & 8238 & 98.91\% & 98.94\% \\ \hline
+Doubled caches size (64 KiB) & 1363438 & 8237 & 99.59\% & 98.94\% \\ \hline
+Quadrupled caches size (128 KiB) & 438583 & 8237 & 99.87\% & 98.94\% \\ \hline
+Halved caches size (16 KiB) & 6844164 & 8237 & 97.96\% & 98.94\% \\ \hline
+Quartered caches size (8 KiB) & 9970037 & 8239 & 97.02\% & 98.94\% \\ \hline
+Doubled caches block size (128 bytes) & 3253047 & 4130 & 99.03\% & 99.47\% \\ \hline
+Halved caches block size (32 bytes) & 4600941 & 16451 & 98.63\% & 97.88\% \\ \hline
+\end{tabular}
+\caption{Performance metrics for various cache configurations - Linux boot}
+\label{tab:performance_metrics_linux}
+\end{table}
+\end{center}
+
 \section{Benchmark conclusions}
 
 \subsection*{Matrix Multiplication}
