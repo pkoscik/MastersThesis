@@ -64,6 +64,7 @@
   
 \ifpdf
         \usepackage[unicode,linktocpage,bookmarks]{hyperref}
+        \usepackage{amsmath}
 \else
         \usepackage[dvips,unicode,linktocpage,bookmarks]{hyperref}
 \fi
