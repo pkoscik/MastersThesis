@@ -21,7 +21,9 @@ further enhance performance.
 
 \subsubsection*{Simulation and real hardware correlation}
 
-This work has confirmed the correlation between the hardware 
+This work has confirmed the correlation of the CPU cache behavior between the real hardware platform and the simulated virtual platform and cache model implemented in this work. By
+using virtual platforms, developers are provided with an immediate feedback on the impact of code changes on cache performance. This proactive approach to performance optimization
+reduces the need for extensive post-deployment tuning, leading to faster and easier development processes.
 
 \subsubsection*{Practical implications for system design}
 
@@ -39,8 +41,15 @@ The thesis provides a set of findings that have practical implications for syste
 
 Future research could extend this work by exploring trace-based evaluation in more complex and diverse computing environments. Areas for further investigation include:
 
-\subsubsection*{Multi-core and multi-threaded environments}
+\subsubsection*{Multi-core and multi-level cache environments}
+
+This work has not examined the cache behavior in multi-core systems. Further work could be done to extend the cache model with cache coherency protocols, such as MESI or MOESI.
+Additionally, the cache model implemented in this work could be further enhanced by adding support for multi-level caches (L2, L3).
+
 
 \subsubsection*{Advanced cache models}
+
+The model implemented in this work only implements the traditional cache behavior. Further work can be put into implementing advanced cache mechanisms, such as
+the Trace Assisted Caching \cite{usingtrace} and dynamic line replacement algorithms \cite{dynamiceviction}.
 
 \subsubsection*{Hardware integration}
