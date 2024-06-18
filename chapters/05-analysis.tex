@@ -6,20 +6,22 @@
 \subsection{Zephyr based matrix-multiplication}
 
 % TODO: is zephyr even imporant here? idk
+% PZIE: I don't think it hurts in any way
 Matrix multiplication is a fundamental operation in many scientific and engineering applications, including high-performance computing (e.g., finite element methods), machine
 learning (e.g., linear algebra), and edge computing (e.g., DSP, edge-AI, cryptography), among others. This section discusses the implementation and of various cache multiplication algorithms,
 taking into the account cache usage in each of them.
+% PZIE: I'd kinda also mention that this is a classic problem to present cache issues
 
 The algorithms have been implemented using the Zephyr RTOS as the execution platform. This particular RTOS has been chosen due to its support for a wide range of hardware boards,
 its user-friendly build system (\texttt{CMake} alongside the \texttt{west} helper), its use of the C programming language, and its robust real-time capabilities.
-Moreover, Zephyr is a collaborative project with the Linux Foundation and is the fastest-growing real-time operating system \cite{zephyrlotsofcommits}. It has commercial support
+Moreover, Zephyr is a collaborative project within the Linux Foundation and is the fastest-growing real-time operating system \cite{zephyrlotsofcommits}. It has commercial support
 from major vendors in the embedded and edge computing sectors, such as Nordic Semiconductors, NXP, STMicroelectronics, Microchip, and many others \cite{aboutzephyr}. Additionally,
 it is backed by major companies in the technology sector, including, among others, Google, Meta, Qualcomm and Intel \cite{zephyrmetagoogle, zephyrmembers}.
 
 \noindent This payload will be used for testing \textit{different software configurations}, while the simulated \textit{hardware remains unchanged}.
 
 \subsubsection*{Naive approach} \label{sec:mmnaive}
-The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method, is called naive, as it is simple, but not cache-friendly
+The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method is called naive because it is simple, but not cache-friendly
 due to its poor data locality.
 
 \begin{center}
@@ -29,7 +31,7 @@ due to its poor data locality.
 	\label{fig:mm_naive}
 \end{center}
 
-The naive approach involves three nested loops, iterating over the rows columns of the matrices:
+The naive approach involves three nested loops, iterating over the rows and columns of the matrices:
 
 \begin{center}
 \centering
@@ -49,11 +51,11 @@ for (i = 0; i < SIZE; i++) {
 \end{minipage}
 \end{center}
 
-\noindent If the matrices are represented as a 1D array in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
+\noindent If the matrices are represented as 1D arrays in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
 The naive algorithm frequently jumps between distant memory locations, leading to cache misses.
 
 \subsubsection*{Block based approach} \label{sec:mmblock}
-The block-based approach improves cache performance by dividing the matrices into smaller sub-matrices (blocks) that fit into the cache.
+The block-based approach improves cache performance by dividing the matrices into smaller sub-matrices (blocks) that fit into cache.
 
 \begin{center}
 	\centering
@@ -96,7 +98,7 @@ for (i = 0; i < SIZE; i += B) {
 
 \subsection{Linux kernel}
 % TODO: this section is a biiit short
-The Linux kernel is a core component of many devices, ranging from relatively small microcontrollers, to desktop computers and even HPC clusters.
+The Linux kernel is a core component of many devices, ranging from relatively small microcontrollers to desktop computers and even HPC clusters.
 It has been selected as a payload due to its relatively lengthy and memory-access-intensive boot process, such as during the unpacking of initramfs. This process is
 characterized by a mix of sequential and random memory access patterns, providing a good benchmark for testing various cache configurations.
 
@@ -104,14 +106,15 @@ characterized by a mix of sequential and random memory access patterns, providin
 
 \section{Cache model verification}
 
-To validate the model, it was tested against two independent data sources. The first validation was performed using the QEMU TCG Cache Modeling plugin as a reference, and the
-second test was conducted by using a hardware device with built in hardware performance counters. The data input for the cache model implemented in this work was generated using
+To validate the model, it was tested against two independent data sources. The first validation was performed using the QEMU TCG Cache Modeling plugin as reference, and the
+second test was conducted by using a physical device with built in hardware performance counters. The data input for the cache model implemented in this work was generated using
 the Renode framework. This constrains the hardware choice to platforms that are compatible with both QEMU and Renode and are readily available for purchase on the market.
 
 The RISC-V-based SiFive HiFive1 Rev B (\texttt{fu310} SoC with one \texttt{e31} RV32IMAC core) platform has been selected. This platform meets the necessary requirements for
 compatibility with both QEMU and Renode, provides extensive documentation including cache parameters, and features built-in hardware performance counters.
 The cache configuration for the \texttt{e31} core includes a 16 KiB 2-way set-associative instruction cache with a 32-byte block line size with \textit{random} eviction policy and
 no data cache \cite{fe310docs}.
+% PZIE this paragraph does not fully work in the context of Linux you mention above
 
 \subsection{Generating cache statistics} \label{sec:gencachestats}
 
@@ -121,8 +124,9 @@ a \textit{Load access fault} exception), while sizes $64^2$ and above resulted i
 starting from the platform reset, and ended at the \texttt{finished()} symbol entry point, a helper function that marks the end of the matrix multiplication algorithm.\label{snip:measurement_window}
 
 \subsubsection{Novel cache model \& Renode ExecutionTracer} % XXX: replace "novel"
-In order to easily gather the cache statistics from the novel cache model, using the Renode framework as a trace generation backend, an \textbf{"Automated Renode Cache Test Executor"} % XXX: replace "novel"
-toolset was prepared. Is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model: % XXX: toolset?
+% PIE: Yeah
+In order to easily gather cache statistics from the novel cache model using the Renode framework as a trace generation backend, an \textbf{"Automated Renode Cache Test Executor"} % XXX: replace "novel"
+toolset was prepared. It is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model: % XXX: toolset? % PZIE: just "tool" maybe?
 
 
 \begin{center}
@@ -147,7 +151,7 @@ for ELF_FILE in "$DIRECTORY"/*.elf; do
 		TRACE_PATH="$TRACE_DIR/$ELF_FNAME.log"
 		RESULT_PATH="$RESULT_DIR/$ELF_FNAME.txt"
 
-		echo "[$(date +%H:%M:%S)] Genrating traces using Renode for $ELF_FNAME" tee -a "$RENODE_LOG"
+		echo "[$(date +%H:%M:%S)] Generating traces using Renode for $ELF_FNAME" tee -a "$RENODE_LOG"
 
 		RENODE_ELF="@$ELF_PATH" RENODE_TRACE="@$TRACE_PATH" renode --console --disable-gui 1>>"$RENODE_LOG" cache.resc &&
 		renode_cache_mdl.py "$TRACE_PATH" presets "$PRESET" > "$RESULT_PATH"
@@ -159,6 +163,7 @@ done
 \end{lstlisting}
 \end{minipage}
 \end{center}
+% PZIE What's with the last echo?
 
 % \noindent The Renode script (\texttt{.resc}) file is uses the passed environment variables to set up the simulation.
 \noindent The Renode script (\texttt{.resc}) file is designed to set up the simulation environment using the passed environment variables. It loads the platform description from
@@ -200,12 +205,13 @@ start
 \end{minipage}
 \end{center}
 
-\noindent The script was executed with two arguments passed. The first argument sets the directory containing the payload ELF file, and the second argument set the cache preset to \texttt{fu310.e31}:
+\noindent The script was executed with two arguments passed. The first argument sets the directory containing the payload ELF file (or files), and the second argument set the cache preset to \texttt{fu310.e31}:
 \begin{verbatim}
 ./automated_renode_cache_exec.sh elfs/ "fu310.e31"
 \end{verbatim}
 
 \noindent The Renode script was executed, and the resulting cache simulation data were saved to a file. These results are presented in Table \ref{table:cache_results}.
+% PZIE Why past tense all of a sudden?
 
 
 \subsubsection{QEMU TCG Cache Modeling plugin}
