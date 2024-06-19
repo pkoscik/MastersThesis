@@ -1,5 +1,6 @@
 
 \chapter{Conclusions}
+% PZIE: In general this is a good chapter. I would, if I were you, put more focus on comparing various versions of software, rather than hardware design - design choices in hw are typically more involved and rely on more factors, including die size, price etc etc
 
 This thesis has explored the efficacy of using trace-based approaches for evaluating CPU cache usage and performance. Several key points should be noted:
 
@@ -8,15 +9,16 @@ This thesis has explored the efficacy of using trace-based approaches for evalua
 Trace-based evaluation has been proven to be an effective solution for profiling CPU cache performance.
 By utilizing trace data, it is possible to gain detailed insights into cache behavior, such as cache hits, misses, and the overall hit-to-miss ratio (HMR). This method allows
 for precise analysis of how different cache configurations impact system performance, enabling the identification of bottlenecks and opportunities for optimization.
-For example, the data from the matrix multiplication benchmarks clearly showed how different block sizes and cache configurations affect the number of cache misses and the
+For example, data from the matrix multiplication benchmarks clearly showed how different block sizes and cache configurations affect the number of cache misses and the
 efficiency of cache usage.
 
 \subsubsection*{Impact of cache size and configuration}
 
 The Linux kernel payload benchmark results observed and described in the section (\ref{sec:linux_boot_perf_conc}) confirm that cache size and configuration significantly impact CPU
 performance. Factors such as cache size, block size, and associativity play crucial roles in determining system efficiency. Increasing the cache size generally leads to a reduction
-in cache misses, which improves overall system efficiency, at the cost of more complicated hardware design. Additionally, optimizing block size and cache associativity can
+in cache misses, which improves overall system efficiency, at the cost of more resource-heavy hardware design. Additionally, optimizing block size and cache associativity can
 further enhance performance.
+% PZIE: it's not really complicated - it's the same design, but bigger
 
 
 \subsubsection*{Simulation and real hardware correlation}
@@ -24,6 +26,7 @@ further enhance performance.
 This work has confirmed the correlation of the CPU cache behavior between the real hardware platform and the simulated virtual platform and cache model implemented in this work. By
 using virtual platforms, developers are provided with an immediate feedback on the impact of code changes on cache performance. This proactive approach to performance optimization
 reduces the need for extensive post-deployment tuning, leading to faster and easier development processes.
+% PZIE: what is "post deployment tuning"?
 
 \subsubsection*{Practical implications for system design}
 
@@ -32,9 +35,11 @@ The thesis provides a set of findings that have practical implications for syste
 \begin{itemize}
 	\item \textbf{Improved cache utilization:} the insights gained from trace-based evaluations can be used to improve cache utilization in various systems. By having a toolset to
 		quantitatively and qualitatively measure cache performance, developers can optimize and improve their code and algorithms.
+		% PZIE: Qualitatively? How so?
 	\item \textbf{Informed hardware design:} the methodology implemented in this work can be adopted for gathering better understanding of the various cache hardware design elements -
 		improving the design process
 	\item \textbf{Benchmarking and validation:} the established benchmarks and methodologies can be adopted for future hardware validation and implementation of 
+	% PZIE: UNFINISHED SENTENCE
 \end{itemize}
 
 \section{Future work}
