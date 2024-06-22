@@ -62,9 +62,8 @@ impacts algorithm efficiency, and affects lower level programming constructs tha
 \noindent Effective utilization of the memory hierarchy can drastically improve computational efficiency, for example by careful planning and arranging data in such way that the
 CPU won't need to have to access main memory as often - for example by splitting large memory chunks into smaller blocks that will fit into cache.
 Additionally, it is important to note the exponential growth in both access times and capacities as one moves down the hierarchy; while higher levels offer lightning-fast access,
-their capacity is limited, whereas lower levels provide large capacity, at the cost of significantly slower access speeds. The same trend is also evident in the cost per capacity unit: the higher
-up in the memory hierarchy, the more expensive the storage becomes \cite{comparchaquant}.
-% PZIE size is a direct product of cost. I would not separate these
+their capacity is limited, whereas lower levels provide large capacity, at the cost of significantly slower access speeds. This trend is also evident in the cost per capacity unit:
+higher levels in the memory hierarchy are more expensive due to their increased performance and lower capacity \cite{comparchaquant}.
 
 \section{CPU caches}
 
@@ -178,10 +177,13 @@ of a memory address into its constituent parts: the tag, set, and offset.
 
 \begin{center}
 	\centering
-	\includegraphics[width=0.7\textwidth]{figures/02-background/caches-addr_to_cache_line_loc.pdf}
+	\includegraphics[width=0.55\textwidth]{figures/02-background/caches-addr_to_cache_line_loc.pdf}
 	\captionof{figure}{An example of how a memory address is divided into tag, set, and offset for cache line identification.}
 	\label{fig:addr2cacheline}
 \end{center}
+
+\noindent The \textit{offset} field is only used when the CPU requests a data operation to determine the specific byte within a cache block and is not stored in the cache. The
+\textit{tag} and (optionally) \textit{set} fields are used to find cache lines for a specific address.
 
 \subsubsection{Fully associative cache}
 \begin{center}
@@ -194,16 +196,15 @@ of a memory address into its constituent parts: the tag, set, and offset.
 \noindent In the fully associative cache each \textit{cache line} can hold a copy of \textit{any memory location}. The memory address is split into the following bit fields:
 
 \begin{itemize}
-	\item \textbf{Offset:} bits used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in a cache line.
-	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 8 bits.
+	\item \textbf{Offset:} bits are used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in a cache line.
+	\item \textbf{Tag:} bits are used by the cache hardware to identify if the requested data is stored in a particular cache line. It takes up the rest of the address, in our example 8 bits.
 \end{itemize}
-% PZIE: Frankly speaking, I don't understand this. You need to rephrase Tag completely imho. Especially as the tag value does not correspond to the address on the right hand side in the picture. TBH I don't get this image at all
 
-
-\noindent This configuration minimizes the chances of cache misses due to conflicts, potentially improving performance. However, this type of cache requires complex hardware for
-searching and managing, as it needs to check all entries simultaneously - this means that there are needed as many comparators as there are bits in the \textit{tag} field.
-This means that such implementation is unpractical and seldom used for larger caches \cite{whatevery}, this results in high power consumption and greatly increased die size.
-% PZIE: Still don't get it. What "all entries" need to be checked? Why does it mean we need X comparators? Also "this means, this means, this results". I'd suggest redoing the above, srry.
+\noindent This configuration minimizes the chances of cache misses due to conflicts, potentially improving performance. However, fully associative caches require complex hardware
+for searching and matching cache lines to a given memory address. Specifically, each memory access involves comparing the tag of the requested address with the tags of all cache
+lines simultaneously. This requires a comparator (with the number of inputs equal to the number of bits in the tag field) for each cache line, significantly increasing the hardware
+complexity. As a result, fully associative caches are impractical for larger caches due to the high number of required comparators, which leads to increased power consumption and
+die size \cite{whatevery}.
 
 \subsubsection{Set associative cache}
 \begin{center}
@@ -213,12 +214,11 @@ This means that such implementation is unpractical and seldom used for larger ca
 	\label{fig:set_ass_mem}
 \end{center}
 
-% PZIE: Again, for me it's not easy to understand, why these accesses are connected to these lines... I guess your description of Tag is maybe not clear enough to me (even though you repeat it)
 \noindent The set associative cache introduces a concept of a \textit{set} - a collection of more than one cache line sharing the same \textit{tag}. The address is split into the following fields:
 
 \begin{itemize}
 	\item \textbf{Offset:} bits used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in the cache line.
-	\item \textbf{Set:} (sometimes also called \textbf{index}) bits are used to select the cache set comparators. This example presents 4-way set associative cache - meaning that there are 4 lines
+	\item \textbf{Set:} bits are used to select the cache set comparators. This example presents 4-way set associative cache - meaning that there are 4 lines
 		in each set - needing 2 bits to address it.
 	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 6 bits.
 \end{itemize}
@@ -227,8 +227,9 @@ This means that such implementation is unpractical and seldom used for larger ca
 not every memory address can be cached at the same time, let's imagine that the following addresses are loaded to the cache \texttt{0b0000\_00\_00}, \texttt{0b0001\_00\_00}, \texttt{0b0011\_00\_00}
 and \texttt{0b0111\_00\_00}; all of these four lines share the same \textit{set} \texttt{0b00}, loading another address with the same set, for example \texttt{0b1000\_00\_00} would require 
 an eviction of one of those lines. Eviction methods will be covered in the (\ref{sec:eviction_policies}) section. 
-This tradeoff is compensated by the simplified hardware model. The only method of reducing the number of comparators, is to reduce the number of bits in the \textit{tag} field, the \textit{set}
-matching can be done using simple \textit{MUX}-es \cite{whatevery}.
+This tradeoff is compensated by the simplified hardware model of set associative caches. Instead of requiring a comparator for each possible memory location (as in fully
+associative caches), set associative caches only require comparators for each line within a set. The \textit{set} matching can be done using simple \textit{MUX}-es to select
+different memory blocks, thereby reducing the overall hardware complexity \cite{whatevery}.
 This architecture has found widespread adoption, becoming the most popular type of cache for processors in embedded devices, personal computers and high performance compute clusters
 \cite{digitaldesgnandcomp, evalofcaceh}.
 
@@ -249,12 +250,10 @@ the number of cache lines.
 	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 5 bits.
 \end{itemize}
 
-\noindent Due to their simplicity - no need for replacement policies, and simple design, relatively small amount of supporting hardware components is needed, resulting in low power % TODO: replace design
-consumption, fast and predictable accesses. Thanks to these characteristics fully associative caches have found usage in the TLB caches in some Intel processors \cite{whatevery}. The simplicity
-comes with a drawback - they do not scale well, implementing such architecture as higher level caches will result in lower performance when compared to another solutions. % TODO: refactor, citations
+\noindent Due to their simplicity - no need for replacement policies, and simple design, relatively small amount of supporting hardware components is needed, resulting in low power
+consumption, fast and predictable accesses. Thanks to these characteristics fully associative caches have found usage in the TLB caches in some Intel processors. The simplicity
+comes with a drawback - they do not scale well, implementing such architecture as higher level caches will result in lower performance when compared to another solutions \cite{whatevery}.
 
-
-%
 \subsection{Replacement policies} \label{sec:eviction_policies}
 In cache design, replacement policies describe actions that are performed when a line needs to get \textit{evicted} from the cache memory.
 The choice of replacement policy is a trade-off between cache performance and design complexity required to implement a given solution. Low power
@@ -284,8 +283,8 @@ Frequency based policies attempt to leverage the temporal locality of memory tra
 An example of these policies is \textit{Least Frequently Used (LFU)}. Similarly to the recency based approaches, the cache controller tracks additional usage counters
 for each line, related to the amount of times that an address has been accessed - this increases performance at the cost of increased complexity.
 
-\vspace{10px}\noindent Other frequency based replacement policies include: Adaptive Replacement Cache \cite{arc1}, Two-Level Adaptive Replacement Cache \cite{twoleveladaptive} or Least Frequently Used with Dynamic Aging \cite{jayarekha2010adaptive}. % TODO: find citations
-%
+\vspace{10px}\noindent Other frequency based replacement policies include: Adaptive Replacement Cache \cite{arc1}, Two-Level Adaptive Replacement Cache \cite{twoleveladaptive} or Least Frequently Used with Dynamic Aging \cite{jayarekha2010adaptive}.
+
 \subsection{Cache coherency}
 
 The goal of achieving cache coherency is to maintain a consistent state between two or
