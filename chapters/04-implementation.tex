@@ -18,13 +18,13 @@ the ability to rapidly iterate and test different configurations.
 \subsubsection{\texttt{Cache}} \label{sec:cache_model}
 
 The Cache class encapsulates the cache memory behavioral model. Besides statistic gathering and helper debug methods, its only public interfaces are methods
-providing read/write operations, cache flushing, and constructor with configuration parameters. The cache configuration is derived from the following inputs:
+providing read/write operations, cache flushing, and a constructor with configuration parameters. The cache configuration is derived from the following inputs:
 \begin{itemize}
-	\item Cache width: width of cache memory - $\log_2(\text{cache size})$
-	\item Block width: width of cache block - $\log_2(\text{block size})$
-	\item Memory width: memory address width
-	\item Lines per set: Set associativity: $2^n,\, n \in \{1, 2, 3, ...\}$; -1 for fully associative, 1 for direct mapping
-	\item Replacement policy: FIFO, LRU, LFU or None for random
+    \item Cache width: Represents the width of the cache memory, calculated as \(\log_2(\text{cache size})\).
+    \item Block width: The width of a cache block, calculated as \(\log_2(\text{block size})\).
+    \item Memory width: Denotes the width of the memory address.
+    \item Lines per set: The set associativity is defined as $2^n$, where $n \in \{1, 2, 3, ...\}$. A value of -1 indicates fully associative, and a value of 1 indicates direct mapping.
+	\item Replacement policy: The line eviction policy that will be used by cache, for example: FIFO, LRU, LFU or Random.
 \end{itemize}
 
 \begin{center}
@@ -86,7 +86,7 @@ class Cache:
 \end{center}
 
 \subsubsection*{Read and write cache operations}
-\noindent The \texttt{read} and \texttt{write} methods are the primary interfaces for the cache and have been implemented as follows:
+\noindent The \texttt{read} and \texttt{write} methods are the primary interface for the cache and have been implemented as follows:
 
 \begin{center}
 \centering
@@ -142,6 +142,13 @@ built-in mechanism for enforcing access rights to fields in a class. However, PE
     label={lst:line_lookup},
     caption={\texttt{Cache} line lookup}
     ]
+def _get_lines_in_set(self, set_index: int) -> List[CacheLine]:
+    line_index = set_index * self._lines_per_set
+    return self._lines[
+        line_index:
+        line_index + self._lines_per_set
+    ]
+
 def _line_lookup(self, addr: int) -> CacheLine | None:
     tag = self._addr_get_tag(addr)
     lines_in_set = self._get_lines_in_set(self._addr_get_set(addr))
@@ -151,7 +158,7 @@ def _line_lookup(self, addr: int) -> CacheLine | None:
 \end{center}
 
 \noindent If a matching line is found, the function returns a reference to this line. If no match can be made, the method returns \texttt{None}. This method uses helper functions
-to extract the bit-fields from the memory address:
+to extract the bit fields from the memory address:
 
 
 \begin{center}
@@ -179,17 +186,12 @@ def _addr_get_set(self, addr: int) -> int:
     start = self._block_width
     end = self._block_width + self._set_width - 1
     return self._extract_bits(addr, start, end)
-
-def _addr_get_offset(self, addr: int) -> int:
-    start = 0
-    end = self._block_width - 1
-    return self._extract_bits(addr, start, end)
 \end{lstlisting}
 \end{minipage}
 \end{center}
 
 \subsubsection*{Cache line loading}
-\noindent The line loading is facilitated by the \texttt{\_load} method:
+\noindent Line loading is facilitated by the \texttt{\_load} method:
 
 \begin{center}
 \centering
@@ -231,7 +233,6 @@ def _load(self, addr: int) -> None:
 \begin{lstlisting}[
     language=Python,
 	morekeywords={self},
-    label={lst:cache_load},
     caption={\texttt{Cache} load method}
     ]
 def _select_evicted_index(self, lines_in_set: list) -> int:
@@ -273,9 +274,9 @@ def flush(self) -> None:
 \subsubsection*{Debugging features}
 \noindent The cache class also comes with a set of debugging helpers:
 \begin{itemize}
-    \item \texttt{print\_addr\_info}: prints address-related information in the specified format (binary or hexadecimal). It displays the address, tag, set, and offset values.
+    \item \texttt{print\_addr\_info}: prints address-related information in the specified format (\mbox{binary} or \mbox{hexadecimal}). It displays the address, tag, set, and offset values.
     \item \texttt{print\_cache\_info}: prints details about the cache configuration, including the width of the tag, set, and block fields, as well as the size and number of various cache components.
-    \item \texttt{print\_hmr}: prints the hit-miss ratio along with the number of hits, misses, and invalidations.
+    \item \texttt{print\_hmr}: prints the hit-miss ratio along with the number of hits, misses, and flushes.
     \item \texttt{print\_debug\_lines}: prints debug information for each cache line, including the tag, whether the line is free, and its use count.
 \end{itemize}
 
@@ -320,15 +321,14 @@ class CacheLine:
 \end{center}
 
 \begin{itemize}
-    \item \textbf{Tag:} Binary identifier distinguishing the data block, extracted from the physical address.
+    \item \textbf{Tag:} Binary identifier distinguishing a data block, extracted from its physical address.
     \item \textbf{Use Count:} The line reference usage counter for the LFU replacement policy.
     \item \textbf{Insertion Time:} The timestamp indicating when the cache line was inserted, used by the FIFO replacement policy.
-    \item \textbf{Last Access Time:} The timestamp indicating when the cache line was last accessed, by the LRU replacement policy.
+    \item \textbf{Last Access Time:} The timestamp indicating when the cache line was last accessed, used by the LRU replacement policy.
     \item \textbf{Free:} Boolean flag; \texttt{True} if the line is free for new data, \texttt{False} if it contains valid data.
 \end{itemize}
 
 
-% TODO: these should be moved somewhere else, as we need renode traces - or I could just forward-reference or sth
 \section{Cache interfaces}
 
 The \textit{cache model} (\ref{sec:cache_model}) does not implement any execution, log parsing, and validation logic. This is a deliberate choice to maintain high reusability and modifiability
@@ -336,8 +336,8 @@ of the emulation core component. To test and use the cache model, two interfaces
 
 \begin{itemize}
 	\item \textbf{DummyLogInterface:} a "dummy" interface, intended for usage in test cases. Does not implement any log parsing, instead, the memory accesses are passed as a list of
-        memory operations. Does not provide any user configurable cache parameters options.
-    \item \textbf{RenodeLogInterface:} Interface intended to be used with Renode's \textit{ExecutionTracer} log format. Implements a command-line interface, allowing for easy cache
+        memory operations. Does not provide any user-configurable cache parameters options.
+    \item \textbf{RenodeLogInterface:} Interface intended to be used with Renode's \textit{ExecutionTracer} log format. Implements a command line interface, allowing for easy cache
         configuration changes, as well as a set of preconfigured cache configurations for a selection of devices.
 \end{itemize}
 
@@ -366,17 +366,17 @@ class DummyLogInterface:
         for access in data:
             for type, addr in access.items():
                 match type:
-                    case 'mw':
+                    case 'mw': # Main memory write
                         self.count_mem_write += 1
                         self.cache.write(addr)
-                    case 'mr':
+                    case 'mr': # Main memory read
                         self.count_mem_read += 1
                         self.cache.read(addr)
-                    case 'ior':
-                        self.count_io_write += 1
-                    case 'iow':
-                        self.cache.flush()
+                    case 'ior': # I/O read
                         self.count_io_read += 1
+                    case 'iow': # I/O write (flushes cache)
+                        self.cache.flush()
+                        self.count_io_write += 1
                     case _:
                         raise ValueError('Unsupported memory operation!')
 \end{lstlisting}
@@ -414,15 +414,15 @@ cinterface.simulate(ops)
 \end{minipage}
 \end{center}
 
-\noindent The main goal of this interface is to wrap the cache model, allowing it to be mainly used later to create and run test scenarios, find and remove implementation errors, and
-serve as a test bench for developing new functionalities. It also serves as a generic implementation, that can derived from, and used to aid in connecting this cache model simulator
-to other simulators. On its own this model does not, neither it aims to, provide any external trace interface.
+\noindent The main goal of this interface is to wrap the cache model, allowing it to create and run test scenarios, find and remove implementation errors, and
+serve as a test bench for developing new functionalities. It also serves as a generic implementation that can be derived from, and used to aid in connecting this cache model simulator
+to other simulators. On its own this model does not, nor it aims to, provide any external trace interface.
 
 \subsection{\texttt{RenodeLogInterface}}
 
 The \texttt{RenodeLogInterface} is an interface allowing for usage of the cache model with the execution trace files generated from the Renode Framework \textit{ExecutionTracer} logging module.
-This functionality can be enabled by adding these lines to the platform script file\footnote{Creating, configuring and working with Renode virtual platforms is described in the
-(\ref{app:creating_renode_platforms}) section.}:
+This functionality can be enabled by adding these lines to the platform script file\footnote{Configuring and working with Renode virtual platforms is described in the
+Renode Documentation \cite{renoderescdocs}.}:
 
 \begin{center}
 \centering
@@ -437,7 +437,7 @@ tracer TrackMemoryAccesses
 \end{lstlisting}
 \end{minipage}
 \end{center}
-\footnotetext{The \texttt{<cpu\_name>} must be changed to the name of the CPU on which the execution tracer should be activated.}
+\footnotetext{The \texttt{<cpu\_name>} must be changed to the name of the CPU on which the execution tracer is to be activated.}
 
 \noindent Running a Renode simulation with the tracer enabled will generate a \texttt{trace.log} file:
 \begin{center}
@@ -464,14 +464,14 @@ MemoryRead with address 0x8046FC8
 \end{minipage}
 \end{center}
 
-\noindent The \texttt{RenodeLogInterface} processes these execution trace logs, extracting memory access events for the cache simulation. In the following section, we will review % TODO: improve this
+\noindent The \texttt{RenodeLogInterface} processes these execution trace logs, extracting memory access events for cache simulation. In the following section, we will review
 the source code for the \texttt{RenodeLogInterface}, focusing on reading trace files, interfacing with the cache model and streamlining cache parameters configuration.
 
 \subsubsection*{Cache memory configuration}
 
-In order to streamline the cache configuration, this application allows for two ways of ways of cache model configuration:
+In order to streamline the cache configuration, this application allows for two ways of cache model configuration:
 \begin{itemize}
-    \item \textbf{Command line interface parameters:} this method allows users to specify detailed configuration options directly through the command line. Users can define various
+    \item \textbf{Command line interface arguments:} this method allows users to specify detailed configuration options directly through the command line. Users can define various
         cache parameters such as memory width, cache width, block width, lines per set, and the replacement policy for both L1 instruction and data caches.
     \item \textbf{Presets:} this method loads a predefined set of configuration parameters using a preset name. Presets are useful for standard configurations that are frequently used or
         for quickly setting up the cache model without specifying each parameter individually.
@@ -482,7 +482,7 @@ In order to streamline the cache configuration, this application allows for two 
 \centering
 \begin{minipage}{\linewidth}
 \begin{lstlisting}[
-    caption={Cache configuration presets\protect\footnotemark}
+    caption={Cache configuration presets}
     ]
 presets = {
     'fu740.u74': {
@@ -500,9 +500,8 @@ presets = {
 \end{lstlisting}
 \end{minipage}
 \end{center}
-\footnotetext{Parameters that are not available on a given platform can be skipped and not included in the preset.} % XXX: drop this?
 
-\noindent Usage using build in presets: \texttt{./renode\_cache\_mdl.py trace.log presets 'fu740.u74'}, equivalent command line parameters:
+\noindent To use built-in presets, run: \texttt{./renode\_cache\_mdl.py trace.log presets 'fu740.u74'}, which is equivalent to using command line arguments for each parameter:
 
 \begin{verbatim}
 ./renode_cache_mdl.py trace.log config    \
@@ -582,7 +581,6 @@ eviction behavior, flushing, and correct set/index matching. A snippet of the te
 \begin{lstlisting}[
     language=Python,
 	morekeywords={self},
-    label={lst:cache_write_read},
     caption={Snippet of integrated testbench - set associative unit test}
     ]
 cache = Cache(

@@ -5,21 +5,21 @@
 
 \subsection{Zephyr based matrix-multiplication}
 
-% TODO: is zephyr even imporant here? idk
 Matrix multiplication is a fundamental operation in many scientific and engineering applications, including high-performance computing (e.g., finite element methods), machine
-learning (e.g., linear algebra), and edge computing (e.g., DSP, edge-AI, cryptography), among others. This section discusses the implementation and of various cache multiplication algorithms,
-taking into the account cache usage in each of them.
+learning (e.g., linear algebra), and edge computing (e.g., DSP, edge-AI, cryptography), among others. This section discusses the implementation of various cache-friendly
+multiplication algorithms, taking into account cache usage in each of them. This problem is not only central to numerous computational fields but is also a well-established
+benchmark used to illustrate cache performance issues \cite{whatevery, tcgcachemodelling, comparchaquant}.
 
 The algorithms have been implemented using the Zephyr RTOS as the execution platform. This particular RTOS has been chosen due to its support for a wide range of hardware boards,
 its user-friendly build system (\texttt{CMake} alongside the \texttt{west} helper), its use of the C programming language, and its robust real-time capabilities.
 Moreover, Zephyr is a collaborative project with the Linux Foundation and is the fastest-growing real-time operating system \cite{zephyrlotsofcommits}. It has commercial support
 from major vendors in the embedded and edge computing sectors, such as Nordic Semiconductors, NXP, STMicroelectronics, Microchip, and many others \cite{aboutzephyr}. Additionally,
-it is backed by major companies in the technology sector, including, among others, Google, Meta, Qualcomm and Intel \cite{zephyrmetagoogle, zephyrmembers}.
+it is backed by major companies in the technology sector, including, among others, Google, Meta and Intel \cite{zephyrmetagoogle, zephyrmembers}.
 
 \noindent This payload will be used for testing \textit{different software configurations}, while the simulated \textit{hardware remains unchanged}.
 
 \subsubsection*{Naive approach} \label{sec:mmnaive}
-The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method, is called naive, as it is simple, but not cache-friendly
+The naive approach to matrix multiplication involves three nested loops iterating over the rows and columns of the matrices. This method is called naive because it is simple, but not cache-friendly
 due to its poor data locality.
 
 \begin{center}
@@ -29,7 +29,7 @@ due to its poor data locality.
 	\label{fig:mm_naive}
 \end{center}
 
-The naive approach involves three nested loops, iterating over the rows columns of the matrices:
+The naive approach involves three nested loops, iterating over the rows and columns of the matrices:
 
 \begin{center}
 \centering
@@ -49,11 +49,11 @@ for (i = 0; i < SIZE; i++) {
 \end{minipage}
 \end{center}
 
-\noindent If the matrices are represented as a 1D array in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
+\noindent If the matrices are represented as 1D arrays in memory, the naive approach to matrix multiplication results in poor cache performance due to suboptimal data locality.
 The naive algorithm frequently jumps between distant memory locations, leading to cache misses.
 
 \subsubsection*{Block based approach} \label{sec:mmblock}
-The block-based approach improves cache performance by dividing the matrices into smaller sub-matrices (blocks) that fit into the cache.
+The block-based approach improves cache performance by dividing the matrices into smaller sub-matrices (blocks) that fit into cache.
 
 \begin{center}
 	\centering
@@ -95,8 +95,7 @@ for (i = 0; i < SIZE; i += B) {
 \end{center}
 
 \subsection{Linux kernel}
-% TODO: this section is a biiit short
-The Linux kernel is a core component of many devices, ranging from relatively small microcontrollers, to desktop computers and even HPC clusters.
+The Linux kernel is a core component of many devices, ranging from relatively small microcontrollers to desktop computers and even HPC clusters.
 It has been selected as a payload due to its relatively lengthy and memory-access-intensive boot process, such as during the unpacking of initramfs. This process is
 characterized by a mix of sequential and random memory access patterns, providing a good benchmark for testing various cache configurations.
 
@@ -104,8 +103,8 @@ characterized by a mix of sequential and random memory access patterns, providin
 
 \section{Cache model verification}
 
-To validate the model, it was tested against two independent data sources. The first validation was performed using the QEMU TCG Cache Modeling plugin as a reference, and the
-second test was conducted by using a hardware device with built in hardware performance counters. The data input for the cache model implemented in this work was generated using
+To validate the model, it was tested against two independent data sources. The first validation was performed using the QEMU TCG Cache Modeling plugin as reference, and the
+second test was conducted by using a physical device with built in hardware performance counters. The data input for the cache model implemented in this work was generated using
 the Renode framework. This constrains the hardware choice to platforms that are compatible with both QEMU and Renode and are readily available for purchase on the market.
 
 The RISC-V-based SiFive HiFive1 Rev B (\texttt{fu310} SoC with one \texttt{e31} RV32IMAC core) platform has been selected. This platform meets the necessary requirements for
@@ -120,9 +119,9 @@ platform's limited RAM size, the benchmark sample had to be limited to a matrix 
 a \textit{Load access fault} exception), while sizes $64^2$ and above resulted in a linker failure due to overflowing memory regions.}. The cache usage statistics are gathered
 starting from the platform reset, and ended at the \texttt{finished()} symbol entry point, a helper function that marks the end of the matrix multiplication algorithm.\label{snip:measurement_window}
 
-\subsubsection{Novel cache model \& Renode ExecutionTracer} % XXX: replace "novel"
-In order to easily gather the cache statistics from the novel cache model, using the Renode framework as a trace generation backend, an \textbf{"Automated Renode Cache Test Executor"} % XXX: replace "novel"
-toolset was prepared. Is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model: % XXX: toolset?
+\subsubsection{Cache model \& Renode ExecutionTracer}
+In order to easily gather cache statistics from the cache model using the Renode framework as a trace generation backend, an \textbf{"Automated Renode Cache Test Executor"}
+tool was prepared. It is a wrapper, written in bash, that configures, and pipelines the execution of both Renode and Cache model:
 
 
 \begin{center}
@@ -147,20 +146,18 @@ for ELF_FILE in "$DIRECTORY"/*.elf; do
 		TRACE_PATH="$TRACE_DIR/$ELF_FNAME.log"
 		RESULT_PATH="$RESULT_DIR/$ELF_FNAME.txt"
 
-		echo "[$(date +%H:%M:%S)] Genrating traces using Renode for $ELF_FNAME" tee -a "$RENODE_LOG"
+		echo "[$(date +%H:%M:%S)] Generating traces using Renode for $ELF_FNAME" tee -a "$RENODE_LOG"
 
 		RENODE_ELF="@$ELF_PATH" RENODE_TRACE="@$TRACE_PATH" renode --console --disable-gui 1>>"$RENODE_LOG" cache.resc &&
 		renode_cache_mdl.py "$TRACE_PATH" presets "$PRESET" > "$RESULT_PATH"
 
-		echo "[$(date +%H:%M:%S)] finished" | tee -a "$RENODE_LOG"
-		echo "" | tee -a "$RENODE_LOG"
+		echo -e "[$(date +%H:%M:%S)] finished\n" | tee -a "$RENODE_LOG"
 	fi
 done
 \end{lstlisting}
 \end{minipage}
 \end{center}
 
-% \noindent The Renode script (\texttt{.resc}) file is uses the passed environment variables to set up the simulation.
 \noindent The Renode script (\texttt{.resc}) file is designed to set up the simulation environment using the passed environment variables. It loads the platform description from
 the \texttt{cache\_platform.repl} file - in this case this file had contained the \texttt{fu310} SoC platform description - and an ELF file specified by the environment variables.
 
@@ -200,13 +197,12 @@ start
 \end{minipage}
 \end{center}
 
-\noindent The script was executed with two arguments passed. The first argument sets the directory containing the payload ELF file, and the second argument set the cache preset to \texttt{fu310.e31}:
+\noindent The script was executed with two arguments passed. The first argument sets the directory containing the payload ELF file (or files), and the second argument set the cache preset to \texttt{fu310.e31}:
 \begin{verbatim}
 ./automated_renode_cache_exec.sh elfs/ "fu310.e31"
 \end{verbatim}
 
 \noindent The Renode script was executed, and the resulting cache simulation data were saved to a file. These results are presented in Table \ref{table:cache_results}.
-
 
 \subsubsection{QEMU TCG Cache Modeling plugin}
 The QEMU was invoked with the following parameters:
@@ -231,7 +227,7 @@ riscv64-zephyr-elf-gdb payload.elf   \
 	-ex 'continue'                        # start executing the payload
 \end{verbatim}
 
-\noindent After the program halted at the breakpoint, the QEMU simulator was terminated, and the resulting cache simulation data were saved to a file. These results are presented in % TODO: too much passive voice? this reads weeeird
+\noindent After the program halted at the breakpoint, the QEMU simulator was terminated, and the resulting cache simulation data were saved to a file. These results are presented in
 Table \ref{table:cache_results}.
 
 
@@ -271,11 +267,11 @@ void z_prep_c(void)
   __asm__ volatile("csrw mhpmevent4, %0" : : "r"(val));
   __asm__ volatile("csrw mhpmcounter4, zero");
   __asm__ volatile("csrw mhpmcounter4h, zero");
+  __asm__ volatile("csrw minstret, zero");
 #endif
   z_bss_zero();
   z_data_copy();
   z_cstart();
-  CODE_UNREACHABLE;
 }
 \end{lstlisting}
 \end{minipage}
@@ -294,9 +290,11 @@ void z_prep_c(void)
 void __attribute__ ((noinline)) finished(void)
 {
 #ifdef HPM_INIT
-	unsigned long lo = 0l;
-	__asm__ volatile("csrr %0, mhpmcounter4" : "=r"(lo));
-	printf("hpm4 data: %lu\n", lo);
+    unsigned long lo = 0l;
+    unsigned long val = 0ul;
+    __asm__ volatile("csrr %0, minstret" : "=r"(val));
+    __asm__ volatile("csrr %0, mhpmcounter4" : "=r"(lo));
+    printf("mret=%lu\nhpm4 data: %lu\n", val, lo);
 #else
 	__asm__ volatile("addi x0, x0, 0");
 #endif
@@ -309,38 +307,39 @@ void __attribute__ ((noinline)) finished(void)
 
 \subsection{Verification results}
 
-\begin{center}
+The collected data points are presented in the (\ref{table:cache_results}). The verification results show a high degree of similarity between the Cache model using Renode-generated
+traces and the QEMU TCG Cache Modeling Plugin, with both environments reporting nearly identical instruction accesses, misses, and hit to miss ratios.
+
 \begin{table}[h!]
 \centering
 \begin{tabular}{|l|c|c|c|c|}
 \hline
 \textbf{Environment} & \textbf{Accesses} & \textbf{Misses} & \textbf{Hits} & \textbf{HMR} \\ \hline
-Cache model + Renode generated trace    & 91468        & 291         & 91177 & 99.68\%    \\ \hline
-QEMU TCG Cache Modeling Plugin          & 91470        & 292         & 91178 & 99.68\%    \\ \hline
-Hardware performance counters           & -            & 217         & - & -			  \\ \hline % TODO: i think it might be possible to get the accesses using the minstret csr?
+Cache model + Renode generated trace    & 87238        & 286         & 86952 & 99.67\%    \\ \hline
+QEMU TCG Cache Modeling Plugin          & 87240        & 287         & 86953 & 99.67\%    \\ \hline
+Hardware performance counters           & 87115        & 311         & 86804 & 99.64\%    \\ \hline
 \end{tabular}
-\caption{Instruction accesses and misses generated by the Cache Model + Renode Traces, QEMU TCG Cache modelling plugin and HPMs.}
+\caption{Instruction accesses and misses generated by the Cache Model + Renode Traces, QEMU TCG Cache modelling plugin and HPMs}
 \label{table:cache_results}
 \end{table}
-\end{center}
 
-\noindent The verification results show a high degree of similarity between the Cache model using Renode-generated traces and the QEMU TCG Cache Modeling Plugin, with both environments
-reporting nearly identical instruction accesses, misses, and hit to miss ratios. The discrepancy in the number of cache misses observed in the hardware performance counters,
-compared to the emulated cache models, could be attributed to the later initialization of the hardware performance counters. As a result, some initial instructions might not have
-been counted. It is important to note that it is impossible to obtain the instruction access count from the HPMs, as there is no specific counter for this purpose.
+\noindent The discrepancy in the number of cache misses and executed instructions observed in the hardware performance counters, compared to the emulated cache models, could
+be attributed to the later initialization of the hardware performance counters. As a result, some initial instructions might not have been counted. Additionally, there might be
+unmodeled cache cleaning instructions or CPU exceptions that clean the cache in both QEMU and Renode, which could further explain why the number of cache misses is higher on the
+hardware.
 
 \section{Benchmarks}
 
 The benchmarks were performed using the simulated HiFive Unmatched platform (\texttt{fu740} SoC with one \texttt{s7} RV64IMAC and four \texttt{u74} RV64GC cores) \cite{fu740docs}.
-This platform was chosen due to its support for both the Zephyr and Linux operating systems, and its relatively large RAM size, which allows for the execution of more substantial
+This platform was chosen because its supported in both the Zephyr and Linux operating systems, and because of its relatively large RAM size, which allows for the execution of more substantial
 and cache-intensive payloads. Additionally, this machine platform description is provided with the Renode framework.
-The matrix multiplication payloads will be used to analyze the impacts of optimizing payload configuration on cache usage, while the Linux boot process will be used to measure the
+The matrix multiplication payloads were used to analyze the impacts of optimizing payload configuration on cache usage, while the Linux boot process was used to measure the
 impact of changing cache configurations.
 
 \subsection{Matrix multiplication}
 
-The benchmarks for matrix multiplication use the same code and measurement window as the described in Section (\ref{sec:gencachestats}) - measurement begins as soon
-as the platform is initialized, and ends upon reaching the \texttt{finished()} symbol.
+The benchmarks for matrix multiplication used the same code and measurement window as described in Section (\ref{sec:gencachestats}), measurement began as soon
+as the platform was initialized and ended upon reaching the \texttt{finished()} symbol.
 The following payload configurations were tested:
 \begin{itemize}
 	\item Naive approach with matrix sizes of $8^2$, $16^2$, $32^2$, $64^2$, $128^2$, and $256^2$.
@@ -448,19 +447,21 @@ executed instructions by the CPU.
 \label{tab:performance_metrics_256}
 \end{table}
 \end{center}
+\noindent The analysis of this data is presented in Section (\ref{sec:conc_mm}).
 
 \subsection{Linux kernel boot sequence}
 
-The benchmarks will focus on both the first level of data cache (abbreviated as \texttt{L1D\$}) and the first level instruction cache (abbreviated as \texttt{L1I\$}). The software
-configuration will remain unchanged, with the only variable being the simulated cache configuration. The trace gathering window will commence as soon as the Linux kernel takes
-control of the CPU and will conclude upon reaching the user-space login prompt. The following configurations have been tested:
+The benchmarks focused on both the first level of data cache (abbreviated as \texttt{L1D\$}) and the first level instruction cache (abbreviated as \texttt{L1I\$}). The software
+configuration remained unchanged, with the only variable being the simulated cache configuration. The trace gathering window started as soon as the Linux kernel takes
+control of the CPU and concluded upon reaching the user-space login prompt. The following configurations were tested:
 
 \begin{itemize}
-    \item Standard platform configuration: 32 KiB instruction and data caches, 64-byte cache blocks, 4-way set associative instruction cache, and 8-way set associative data cache.
+    \item Standard platform configuration: 32 KiB instruction and data caches, random eviction, 64-byte cache blocks, 4-way set associative instruction cache, and 8-way set associative data cache.
     \item Modified cache sizes: 64 KiB (2x), 128 KiB (4x), 16 KiB (0.5x), 8 KiB (0.25x).
+    \item Modified cache block sizes: 128 bytes (2x), 32 bytes (0.5x).
     \item Reduced associativity: 2-way set associative instruction cache, 4-way set associative data cache.
     \item Fully associative caches: Fully associative instruction and data caches.
-    \item Modified cache block sizes: 128 bytes (2x), 32 bytes (0.5x).
+	\item Different eviction policies: FIFO, LRU, and LFU.
 \end{itemize}
 
 \noindent For every test run, the total number of instructions executed was 33,470,111, with 775,974 memory accesses (reads: 41,937, writes: 35,659).
@@ -472,23 +473,36 @@ control of the CPU and will conclude upon reaching the user-space login prompt. 
 \hline
 \textbf{Cache configuration}  & \textbf{L1I\$ Misses} & \textbf{L1D\$ Misses} & \textbf{L1I\$ HMR} & \textbf{L1D\$ HMR}\\ \hline
 Standard configuration & 3648528 & 8238 & 98.91\% & 98.94\% \\ \hline
+
+\hline
 Doubled caches size & 1363438 & 8237 & 99.59\% & 98.94\% \\ \hline
 Quadrupled caches size & 438583 & 8237 & 99.87\% & 98.94\% \\ \hline
 Halved caches size & 6844164 & 8237 & 97.96\% & 98.94\% \\ \hline
 Quartered caches size & 9970037 & 8239 & 97.02\% & 98.94\% \\ \hline
+
+\hline
 Doubled caches block size & 3253047 & 4130 & 99.03\% & 99.47\% \\ \hline
 Halved caches block size & 4600941 & 16451 & 98.63\% & 97.88\% \\ \hline
+
+\hline
 Halved associativity & 4424764 & 8241 & 98.68\% & 98.94\% \\ \hline
 Fully associative cache & 2896796 & 8237 & 99.13\% & 98.94\% \\ \hline
+
+\hline
+FIFO Eviction Policy & 3973978 & 8237 & 98.81\% & 98.94\% \\ \hline
+LRU Eviction Policy & 3597184 & 8237 & 98.93\% & 98.94\% \\ \hline
+LFU Eviction Policy & 9453175 & 8234 & 97.18\% & 98.94\% \\ \hline
+
 \end{tabular}
 \caption{Performance metrics for various cache configurations - Linux boot}
 \label{tab:performance_metrics_linux}
 \end{table}
 \end{center}
+\noindent The analysis of this data is presented in Section (\ref{sec:conc_linux}).
 
 \section{Benchmark conclusions}
 
-\subsection*{Matrix Multiplication}
+\subsection*{Matrix Multiplication} \label{sec:conc_mm}
 
 The table with cache statistics for the naive approach (Table \ref{tab:performance_metrics}) displays the effects of non-cache optimized algorithms. The data reveals a significant
 increase in L1D\$ cache misses as matrix size grows, which highlights the inefficiency of the naive method in utilizing cache memory effectively. The hit rate drops markedly from
@@ -525,7 +539,13 @@ highest hit rate of 99.71\%, substantially better than the naive approach.
 increases as the block size decreases, with block sizes of 8, 32, and 128 requiring 288,790,285 (65.4\% increase), 277,988,449 (59.2\% increase), and 275,419,880 (57.7\% increase)
 instructions, respectively.
 
-\subsection*{Linux kernel boot sequence} \label{sec:linux_boot_perf_conc}
+\subsection*{Linux kernel boot sequence} \label{sec:conc_linux}
+
+\begin{center}
+	\centering
+	\includegraphics[width=1\textwidth]{figures/05-analysis/linux_boot.pdf}
+	\captionof{figure}{HMR visualization for the Linux kernel boot across various cache configurations}
+\end{center}
 
 Increasing the cache size has reduced the number of cache misses, doubling the instruction cache size decreased misses by approximately 62.6\% (from 3,648,528 to 1,363,438), and
 quadrupling it further reduced misses by about 87.9\% (down to 438,583). Decreasing the cache size leads to a significant rise in cache misses, halving the instruction cache size
@@ -538,3 +558,7 @@ L1I\$ cache misses by 26.2\% (to 4,600,941).
 
 Halving the associativity of the instruction cache increased L1I\$ cache misses by 21.6\% (to 4,424,764). Using a fully associative cache reduced L1I\$ cache misses by 20.6\% (to
 2,896,796). Changing the mapping configuration had little to no effect on the data cache.
+
+The \textit{standard configuration} has used the random eviction policy. Using the FIFO eviction policy increased instruction cache misses by approximately 8.8\% (from 3,648,528
+to 3,973,978). Switching to the LRU policy resulted in a slight decrease in instruction cache misses by about 0.1\% (from 3,648,528 to 3,597,184). In contrast, using the LFU policy
+caused a significant increase in instruction cache misses by approximately 159.0\% (from 3,648,528 to 9,453,175). Changing the eviction policy had no effect on the data cache.
