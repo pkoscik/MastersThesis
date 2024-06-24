@@ -119,7 +119,7 @@ hit rates and access times. Let's assume the following:
 \begin{itemize}
 	\item \textbf{Increasing cache size:} Larger caches can store more data, reducing the likelihood of cache misses. However, this approach does not scale well,
 		as the physical space on the processor die is limited and expensive, and there are often other hardware constraints \cite{Smith1982, Hill1989}.
-	\item \textbf{Multi-level caches:} Implementing multiple levels of cache (L1, L2, L3), and splitting data and code caches (I\$, D\$) allows for a hierarchy of storage with different
+	\item \textbf{Multi-level caches:} Implementing multiple levels of cache (L1, L2, L3), and splitting data and code caches (also referred to as D\$ and I\$) allows for a hierarchy of storage with different
 		sizes and speeds. This operates on the same principle as the memory hierarchy discussed in (\ref{sec:memhier}). The L1 cache, the smallest and the fastest one, handles the most frequently accessed data,
 		while the larger L2 and L3 caches handle less frequently accessed data.
 	\item \textbf{Improved placement and eviction policies:} Algorithms for determining where data should be placed in cache and which data should be evicted when cache is full
