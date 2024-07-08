@@ -1,0 +1,125 @@
+
+\chapter{State of the art}
+This chapter will cover the state of the art for both full system emulation and cache simulators, providing a detailed overview of the current technologies and methodologies in these fields.
+
+\section{Full system simulation}
+Whole system emulators have become a crucial part of both software and hardware development cycles, allowing developers to simulate the behavior of complete systems, including
+hardware and software components, in a controlled and repeatable environment. These emulators provide a platform for testing, debugging, and validating various aspects of system
+performance and functionality before deploying them on actual hardware. The following sections will provide an overview of the most notable full system emulators
+
+\subsection{Renode}
+
+The Renode framework is Antmicro’s open-source, permissively licensed (MIT), embedded device simulation platform \cite{Renode}. Being mostly written in C\# and C, the framework provides an organized,
+easily expandable codebase, rich in object-oriented principles. It can be compiled using both mono and .NET build systems for all major operating systems.
+The framework supports a wide range of CPU architectures, including, among others, \textit{ARMv7}, \textit{ARMv8}, and \textit{RISC-V}.
+Additionally, Renode offers comprehensive whole-system emulation, allowing for the simulation of complex peripherals and interconnections. This capability enables developers to
+create and test realistic embedded system environments, including I/O devices, sensors, and communication interfaces. The platform description files and execution scripts
+use simple and easily modificable syntax, allowing for rapid iteration, efficient testing, and seamless integration with various development workflows.
+
+Some of the outstanding qualities of the Renode framework are its advanced debugging, logging, and execution tracing systems, such as:
+\begin{itemize}
+	\item \textbf{Execution tracer:} this subsystem allows for monitoring and saving the traces of all major CPU operations, including program flow tracing, memory access logging and
+		performed I/O operations.
+	\item \textbf{Execution metrics:} a module that allows to measure quantitative data related to the simulation, including number of accesses to peripherals, number of exceptions and
+		the number of executed instructions (including counting of specific opcodes).
+	\item \textbf{Execution profiler:} a call stack analysis tool intended for debugging and inspecting the guest virtual machine software.
+	\item \textbf{Python hooks:} the framework utilizes a built-in Python API to provide an easy entry point to automate testing, extend the simulator's functionalities, and integrate
+		seamlessly with other tools and workflows.
+\end{itemize}
+
+\noindent Due to its advanced debugging capabilities, the Renode framework was selected as the emulation framework for this work.
+
+\subsection{QEMU}
+
+QEMU, also called \textit{Quick Emulator} \cite{qemuoriginal}, is a whole-system emulation framework with KVM support. Originally developed by Fabrice Bellard \cite{qemufabrice} and released
+under GNU General Public License v2. It is written entirely in the C programming language, and can compiled for all major operating systems.
+
+However, unlike in Renode, platforms in QEMU are defined in \textit{header files}, which means
+that changes to the platform configuration are relatively slow and require recompilation of the project. Another similarity to Renode is that QEMU also provides a set of debugging
+and analysis tools. However, instead of using Python as a scripting engine, QEMU implements its own fully custom plugin system, which also requires the user to recompile the
+application to apply changes. Its main distinguishing factor is built-in support for userspace and KVM emulation, allowing for very efficient emulation if the simulated software is
+compiled for the same architecture and/or operating system. In the context of this thesis, QEMU ships with a \textit{Cache Modelling TCG Plugin} \cite{tcgcachemodelling}.
+
+\subsection{Other notable simulators}
+
+\begin{itemize}
+	\item \textbf{Intel Simics:} is a full-system simulator developed by Wind River, a subsidiary of Intel. Simics supports a wide range of CPU architectures and peripheral models.
+		It is released under a proprietary, closed-source license.
+	\item \textbf{gem5:} event driven full-system emulator, mainly used in academia and advanced research institutions. Developed by universities, companies and the community, maintained by the
+		\textit{Project management committee} \cite{gem5governance}.
+\end{itemize}
+
+\section{Cache simulators}
+Cache simulators are essential tools for analyzing and optimizing the performance of memory hierarchies in computer systems. These simulators enable researchers and developers to
+model and study various cache configurations and behaviors, allowing for improvements in system efficiency and performance. The following sections will discuss some of the notable
+cache simulators currently in use.
+
+\subsection{gem5}
+
+The \textit{gem5} project is a highly flexible, modular platform for computer system architecture research and development that includes advanced cache modeling features \cite{gem5cachesupport}.
+It has been previously used in a number of academic papers discussing the topic of CPU caches \cite{gem5cachecite1, gem5cachecite2, gem5cachecite3}.
+
+This simulator supports a wide range of cache architectures and configurations, offering high flexibility, essential for research and academic institutions \cite{gem5}.
+It operates with cycle-level simulation accuracy, allowing for modeling and measuring the timing performance characteristics of cache behavior. This potentially provides a higher level of accuracy
+compared to behavioral or functional simulators \cite{gem5accuracy}. \textit{gem5} enables simulation of complex memory hierarchies, including multi-level caches, which are commonly
+used in modern computer architectures \cite{gem5multilevel, cachesimsurv}.
+
+Despite its strengths, the high level of detail and flexibility in \textit{gem5}
+can make it complex and difficult to set up. The documentation is extensive, but its high level of detail can be overwhelming,
+making it challenging to navigate effectively \cite{gem5hell}. The complex simulation model also requires significant computational resources for support advanced, real world payloads
+\cite{gem5, cachesimsurv}. As an open-source and mainly community and academia backed project, \textit{gem5} lacks the backing of commercial entities or large companies, which can lead to
+periods where certain features may be underdeveloped or not fully supported \cite{gem5hell, gem5maintainers}.
+While the project uses a modular approach for its modules and hardware models, the project complex codebase,
+unstable APIs, frequent functionality breaking changes \cite{gem5hell} result in the fact that \textit{gem5} is very hard to integrate with external tooling.
+
+\subsection{QEMU TCG Cache Modeling plugin} \label{sec:qemu_cache}
+
+The TCG Cache Modeling plugin is a plugin for the QEMU emulator, created as a part of Google Summer of Code \cite{qemucachegsoc}. It supports a variety of cache configuration parameters, such as
+cache and block size, eviction policies and optional L2 support \cite{tcgcachemodelling}.
+
+A significant advantage of the plugin is its ease of use in the existing QEMU workflows, since it doesn't require any additional software to be introduced into the development processes.
+However, such integration makes it nearly impossible to integrate this cache analysis tool with other simulators. There is no functionality to save the trace files, and process them off-line,
+instead, the entirety of the cache model simulation happens within the constraints of the TCG plugin system \cite{qemutcgplugindocs}, thus begin reliant on QEMU for simulating 
+payloads. For users looking for modular cache simulation tools that can be adapted to various other environments, this could pose a significant constraint.
+
+\vspace{10px}
+\noindent Efforts have also been made to incorporate cache modeling as a core feature of the QEMU simulator \cite{qemucacheattempt}, but these enhancements have not been merged and the
+source code has not been made publicly available.
+
+\subsection{dineroIV}
+
+DineroIV is a cache simulator for memory reference traces, created by the researchers from \textit{University of Wisconsin, Computer Sciences} \cite{dinero}. 
+The cache model supports a variety of configuration parameters, such as overall cache size, block size, eviction methods, and others. These parameters are used to define the structure of
+single and multi-level caches. DineroIV is purely a cache simulator, with no system emulation backend - it can be only used to emulate the cache from the memory reference traces.
+It has been last updated in 1999 and is not available under open source license.
+
+\subsection{pycachesim}
+
+Pycahesim is a single-core cache hierarchy simulator with Python API and C backend. It has been developed and released by Regionales Rechenzentrum Erlangen, Hochleistungsrechner (RRZE-HPC)
+under an AGPL-3.0 license \cite{pycachesim}. The Python API is straightforward and can be easily integrated into external projects. Since the backend is written in a compiled language, it is
+relatively fast compared to purely interpreted simulators. The simulator supports complex, multilevel cache configurations, including exclusive and victim caches.
+However, pycahesim does not support the differentiation of instruction and data caches, which can limit its utility in more complex simulation scenarios. Additionally, the AGPL
+license imposes significant restrictions on the commercial use of the project, resulting in little to no industry adoption. Due to this fact, the simulator remains mostly supported
+by academic institutions, with very infrequent updates\footnote{As of June 2024, the last update was released over two years ago.}.
+
+\vspace{10px}
+\noindent Efforts have been made to integrate QEMU and pycachesim \cite{pycachesimqemu}.
+
+\subsection{drcachesim (DynamoRIO)}
+
+DynamoRIO is a runtime code manipulation system that provides a flexible framework for building dynamic program analysis tools. It is an open-source project with major
+contributions from Google, Apple and Arm, released under the BSD-3-Clause license \cite{dynamorio}.
+
+This framework allows for the insertion of custom instrumentation code into the applications, making it possible to gather information about their behavior, including, among others,
+memory access patterns. One of its components, drcachesim, is a cache simulator. It supports various cache configurations, including advanced setups such as multi-level and
+multi-core caches with coherency \cite{drcachesim}. However, extracting the core cache simulation functionality from the broader DynamoRIO framework can be challenging, making it
+difficult to integrate with external tools. Additionally, generating cache trace files using this approach requires modifying the payload, which might not always be feasible.
+
+\subsection{Cachegrind (Valgrind)}
+
+Cachegrind is a cache profiler that is part of the Valgrind project, an open-source instrumentation framework \cite{valgrind}. Originally developed by Julian Seward, it is now
+maintained by the community \cite{valgrinddevelopers} and is released under the GPL-2.0 license.
+Cachegrind works by inserting its instrumentation code into the payload during runtime, gathering traces related to memory accesses.
+However, this project can only emulate the first level of data and instruction cache. Additionally, it requires the presence of debug information in the binary
+\cite{cachegrinddocs}. This requirement may limit its usage scope, as developers might not always have access to binaries with debug symbols or the source code needed for
+recompilation.

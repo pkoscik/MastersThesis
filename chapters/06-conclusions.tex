@@ -1,0 +1,64 @@
+
+\chapter{Conclusions}
+
+This thesis has explored the efficacy of using trace-based approaches for evaluating CPU cache usage and performance. Several key points should be noted:
+
+\subsubsection*{Effectiveness of trace-based evaluation}
+
+Trace-based evaluation has been proven to be an effective solution for profiling CPU cache performance.
+By utilizing trace data, it is possible to gain detailed insights into cache behavior, such as cache hits, misses, and the overall hit-to-miss ratio (HMR). This method allows
+for precise analysis of how different cache configurations impact system performance, enabling the identification of bottlenecks and opportunities for optimization.
+For example, data from the matrix multiplication benchmarks clearly showed how different block sizes and cache configurations affect the number of cache misses and the
+efficiency of cache usage.
+
+\subsubsection*{Impact of cache size and configuration}
+
+The Linux kernel payload benchmark results observed and described in the section (\ref{sec:conc_linux}) confirm that cache size and configuration significantly impact CPU
+performance. Factors such as cache size, block size, and associativity play crucial roles in determining system efficiency. Increasing the cache size generally leads to a reduction
+in cache misses, which improves overall system efficiency, at the cost of more resource-heavy hardware design. Additionally, optimizing block size and cache associativity can
+further enhance performance.
+
+\subsubsection*{Importance of cache optimized algorithms}
+
+The performance of CPU caches is not only dependent on hardware configurations but is also significantly influenced by the used algorithms. Cache optimized algorithms can
+drastically improve cache utilization. This has been demonstrated through the matrix multiplication benchmarks, described in the section (\ref{sec:conc_mm}). By employing
+cache-aware techniques, such as splitting the data and processing it as a set of smaller chunks, the algorithm's data locality is improved - resulting in fewer cache misses.
+
+\subsubsection*{Simulation and real hardware correlation}
+
+This work has confirmed the correlation of the CPU cache behavior between the real hardware platform and the simulated virtual platform and cache model implemented in this work. By
+using virtual platforms, developers are provided with an immediate feedback on the impact of code changes on cache performance. This proactive approach to performance optimization
+simplifies the development process, leading to faster and easier software development.
+
+\subsubsection*{Practical implications for system design}
+
+The thesis provides a set of findings that have practical implications for system design:
+
+\begin{itemize}
+	\item \textbf{Improved cache utilization:} the insights gained from trace-based evaluations can be used to improve cache utilization in various systems. By having a toolset to
+		quantitatively measure cache performance, developers can optimize and improve their code and algorithms.
+	\item \textbf{Informed hardware design:} the methodology implemented in this work can be adopted for gathering better understanding of the various cache hardware design elements -
+		improving the design process
+	\item \textbf{Benchmarking and validation:} The established benchmarks and methodologies can be adopted for the assessment and optimization of both software algorithms and hardware designs.
+\end{itemize}
+
+\section{Future work}
+
+Future research could extend this work by exploring trace-based evaluation in more complex and diverse computing environments. Areas for further investigation include:
+
+\subsubsection*{Multi-core and multi-level cache environments}
+
+This work has not examined the cache behavior in multi-core systems. Further work could be done to extend the cache model with cache coherency protocols, such as MESI or MOESI.
+Additionally, the cache model implemented in this work could be further enhanced by adding support for multi-level caches (L2, L3).
+
+
+\subsubsection*{Advanced cache models}
+
+The model implemented in this work only implements the traditional cache behavior. Further work can be put into implementing advanced cache mechanisms, such as
+the Trace Assisted Caching \cite{usingtrace} and dynamic line replacement algorithms \cite{dynamiceviction}.
+
+\subsubsection*{Hardware integration}
+
+Further research can be conducted to explore the possibility of obtaining memory traces from real hardware platforms. This could enable developers and hardware designers to use the
+cache model implemented in this work to verify a broader range of devices, enhancing its applicability and accuracy. Additionally, integrating real-world data could lead to more
+robust and reliable cache optimization techniques.

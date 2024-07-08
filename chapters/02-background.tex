@@ -1,0 +1,364 @@
+
+\chapter{Background}
+This chapter provides an overview of essential concepts relevant to this work, including system emulation and cache memory hierarchies. The information presented here aims to set
+the foundation for understanding the methodologies and technologies employed in subsequent chapters.
+
+\section{System emulation}
+
+System emulation is a technique of modeling and imitating the hardware of one system on another system. The range of emulation depends on the use case; some emulators, such as Wine \cite{Wine}
+or QEMU in KVM mode \cite{QemuKVM}, only emulate system-level calls, executing the rest of the application natively. Another example of emulation is software like VirtualBox \cite{VirtualBox}, VMWare \cite{VMWareWorkstation}, or Microsoft
+Hyper-V \cite{hyperv}, which uses host processor virtualization extensions to run the guest operating system in a supervised environment, allowing for more separation between the guest and host software.
+More advanced emulators, such as the Renode framework \cite{Renode}, can emulate entire platforms, including processors of various architectures and their peripherals. Another notable example of
+such an emulator is QEMU's system mode emulation \cite{Qemu} and Intel Simics \cite{simics}.
+
+Emulation software has become a crucial part of developing modern-day software and hardware. It finds uses in a variety of fields of software world, starting from enabling cloud
+service providers with secure, reproducible, and isolated execution environments. This task is mainly handled by hypervisors such as VMWare or Hyper-V (so called level one and two hypervisors).
+Another use for emulators is in continuous integration and delivery systems, where Kernel Virtual Machines (KVM), such as QEMU KVM, are widely used to aid in deploying
+so-called "runners" that execute testing and deployment software in an isolated, manageable and scalable manner. Yet another scenario where emulation greatly enhances workflow is
+development of embedded/edge devices. Emulation software allows for the development of software for non-PC platforms - such as microcontrollers, SBCs or FPGA devices - without the
+need for physical hardware. This decoupling of software and hardware development processes has become important as engineering teams have grown larger and larger. This streamlines the embedded software development process by
+further aligning it with classical software development practices. Emulation solutions provide first-class features such as reproducible CI pipelines, code coverage results and
+other tools that have been taken for granted in the desktop applications development.
+
+
+\section{Caches and memory hierarchies}
+
+Caching is a mechanism used to temporarily store data that is likely to be accessed again in a (often smaller) storage medium, with a higher throughput, lower latency or higher
+availability than the primary storage source, reducing the time and resources required to retrieve this data.
+This work will cover the topic of \textit{CPU Caches}, but the general concept can be applied across
+various types of computing systems and applications.
+For example, web developers use caching to store copies of web pages and other resources in storage closer to the user, by either using the browser cache, or by using the content delivery networks.
+Caches are also commonly used in backend development, for example for storing the results of expensive operations - such as database queries or computationally intensive processing -
+allowing for faster access on subsequent requests. Another place where caches are used are operating systems, where caches are frequently used to store contents and metadata of
+the filesystem \cite{linuxfscache}, considerably reducing access time when applications and services request a file.
+
+\subsection{Overview of memory hierarchy} \label{sec:memhier}
+
+\begin{center}
+	\centering
+	\includegraphics[width=0.75\textwidth]{figures/02-background/memhier.pdf}
+	\captionof{figure}{Memory hierarchy}
+	\label{fig:memhier}
+\end{center}
+
+
+\noindent In the context of computer organization and design, the memory hierarchy is a concept that divides computer storage mediums into a hierarchy based on storage capacity and response time
+\cite{oldbooksmarthead}. The memory hierarchy influences performance in computer organization and design,
+impacts algorithm efficiency, and affects lower level programming constructs that rely on data locality.
+
+\begin{itemize}
+	\item \textbf{Registers:} are the smallest, fastest and most expensive storage locations within the memory hierarchy. They are located directly at the CPU core, and their access speed and capacity depends on the processor
+		architecture, but typically they can store up to 100s of bytes, and the access time is less than a nanosecond (usually not more than one CPU cycle) \cite{whatevery}.
+	\item \textbf{Cache:} is a small, fast memory unit located very close (in the case of L2 caches) to the CPU core, or directly next to it (L1 and TLB). Caches are usually multi-level,
+		can store from 10s to 1000s of kilobytes, and their access time is usually in the range of 1 to 10 nanoseconds \cite{whatevery, Patterson2013}.
+	\item \textbf{Main memory:} commonly referred to as RAM. Typically measured in gigabytes and is responsible for holding the data and instructions that the CPU needs while executing
+		applications. Access times for main memory are generally in the range of 100 to 300 nanoseconds \cite{whatevery, Hamacher2011}.
+	\item \textbf{Persistent storage:} includes devices like hard-drives and solid-state drives. Non-volatile, measured in terabytes. Much slower than RAM, with access times in the range of 5 to 10ms \cite{hddssdspeeds}.
+	\item \textbf{Long term storage:} refers to external storage solutions and archival media, such as tape drives. Access times can vary widely, in case of tape drivers it is in range of several
+		seconds to minutes \cite{tapetimesspeed}.
+\end{itemize}
+
+\noindent Effective utilization of the memory hierarchy can drastically improve computational efficiency, for example by careful planning and arranging data in such way that the
+CPU won't need to have to access main memory as often - for example by splitting large memory chunks into smaller blocks that will fit into cache.
+Additionally, it is important to note the exponential growth in both access times and capacities as one moves down the hierarchy; while higher levels offer lightning-fast access,
+their capacity is limited, whereas lower levels provide large capacity, at the cost of significantly slower access speeds. This trend is also evident in the cost per capacity unit:
+higher levels in the memory hierarchy are more expensive due to their increased performance and lower capacity \cite{comparchaquant}.
+
+\section{CPU caches}
+
+As noted in (\ref{sec:memhier}), caches are small and fast memories, located near or directly on the CPU die. CPU caches have been in use since the early 1960s, with the first
+implementations introduced in the \textit{Atlas 2} supercomputer \cite{oldcomputercache2} and the \textit{IBM System/360 Model 85} \cite{oldcomputercache1}. They are crucial to the
+performance that we can expect from modern processors, as they greatly improve the memory access cost (time or energy). Although they are relatively small compared to main memory,
+typically holding thousands of kilobytes across multiple levels, they require careful management to correctly determine what data should be stored. Since we cannot
+store the entire memory in cache, we encounter the problem of \textit{cache misses} - situations where the CPU attempts to access a specific address that is not present in 
+cache. To demonstrate that CPU caches are an effective solution for reducing memory access cost (in terms of time), we can use mathematical analysis involving the concepts of cache
+hit rates and access times. Let's assume the following:
+
+\begin{itemize}
+    \item \textbf{Cache Hit Rate ($h$)}: The fraction of memory accesses that are completed at the cache level.
+    \item \textbf{Cache Miss Rate ($m$)}: The fraction of memory accesses that are not satisfied by the cache, where $m = 1 - h$.
+    \item \textbf{Cache Access Time ($T_c$)}: Time it takes to access data from cache.
+    \item \textbf{Main Memory Access Time ($T_m$)}: Time it takes to access data from the main memory when a cache miss occurs.
+    \item \textbf{Average Memory Access Time (AMAT)}: The average time it takes to access memory, considering both cache hits and misses.
+\end{itemize}
+
+\noindent AMAT can be calculated using the following formula \cite{Patterson2013}:
+
+\[
+\text{AMAT} = h \cdot T_c + (1 - h) \cdot T_m
+\]
+
+\noindent Let's consider a practical example with typical values for a modern CPU:
+
+\begin{itemize}
+    \item \textbf{Cache Hit Rate ($h$)}: 0.95 (95\%) \cite{comparchaquant}
+    \item \textbf{Cache Access Time ($T_c$)}: 5 nanoseconds \cite{Patterson2013}
+    \item \textbf{Main Memory Access Time ($T_m$)}: 150 nanoseconds \cite{Hamacher2011}
+\end{itemize}
+
+\noindent Plugging these values into the AMAT formula, we get:
+
+\[
+\text{AMAT} = 0.95 \cdot 5 \, \text{ns} + (1 - 0.95) \cdot 150 \, \text{ns} = 12.25 \text{ns}
+\]
+
+\noindent To see the benefit of using cache, let's consider the access time without cache. In this scenario, every memory access would require the main memory access time:
+
+\[
+\text{AMAT without cache} = T_m = 150 \, \text{ns}
+\]
+
+\noindent The performance improvement due to the cache can be calculated as the ratio of the main memory access time to AMAT:
+
+\[
+\text{Performance Improvement} = \frac{T_m}{\text{AMAT}} = \frac{150 \, \text{ns}}{12.25 \, \text{ns}} \approx 12.25 [\cdot]
+\]
+
+\vspace{10px} \noindent To get such performance enhancements, cache must guarantee a relatively high hit-to-miss ratio. Modern caches use a variety of solutions to achieve this, such as:
+
+\begin{itemize}
+	\item \textbf{Increasing cache size:} Larger caches can store more data, reducing the likelihood of cache misses. However, this approach does not scale well,
+		as the physical space on the processor die is limited and expensive, and there are often other hardware constraints \cite{Smith1982, Hill1989}.
+	\item \textbf{Multi-level caches:} Implementing multiple levels of cache (L1, L2, L3), and splitting data and code caches (also referred to as D\$ and I\$) allows for a hierarchy of storage with different
+		sizes and speeds. This operates on the same principle as the memory hierarchy discussed in (\ref{sec:memhier}). The L1 cache, the smallest and the fastest one, handles the most frequently accessed data,
+		while the larger L2 and L3 caches handle less frequently accessed data.
+	\item \textbf{Improved placement and eviction policies:} Algorithms for determining where data should be placed in cache and which data should be evicted when cache is full
+		significantly enhance cache performance. These topics are covered in the (\ref{sec:placement}) and (\ref{sec:eviction_policies}) sections.
+\end{itemize}
+
+\subsection{Core concepts of CPU caches}
+
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/caches-cpu-cache-memory.pdf}
+	\captionof{figure}{Illustration of data flow between the core, cache, and main memory}
+	\label{fig:corecachemem}
+\end{center}
+\vspace{5px}
+
+\noindent Every memory access from the core goes through the cache. This flow is presented in Figure (\ref{fig:corecachemem}), where solid lines represent the transfer of data and
+dashed lines indicate memory requests. When memory content is needed by the core and the content is present in the cache (cache hit), the data is returned from the cache, avoiding
+the need to access the main memory. However, if the content is not present in the cache (cache miss), a line fill event occurs, where the required data block, later referred to as
+cache block, is fetched from the main memory and loaded into the cache.
+
+
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/caches-cacheline_to_memory.pdf}
+	\captionof{figure}{Relationship between cache lines and main memory}
+\end{center}
+
+
+\noindent The cache is divided into small sections called lines. Each line holds a cache block, which is the smallest unit of data that can be transferred between the main memory
+and the cache. Each block holds data from multiple adjacent memory locations, usually 32 or 64 bytes \cite{comparchaquant}. When a cache miss occurs, the entire block is loaded.
+This means that not only the data from the requested address is loaded into the cache, but also the data from the surrounding addresses.
+
+The way that cache lines are mapped to locations in the main memory varies and depends on the used hardware configuration. This concept is called placement policies and is
+described the following section.
+
+\subsection{Placement Policies} \label{sec:placement}
+Cache placement policies determine where a specific memory block can be loaded into the cache. The choice of placement policy influences the cache architecture and its control
+logic, affecting the overall complexity and behavior of the system. Each policy involves trade-offs between reducing cache misses and thrashing, and hardware costs related to the
+size and design of the hardware.
+
+\vspace{10px}
+\noindent Memory and cache configuration for all examples in this section:
+\begin{itemize}
+	\item Memory size: 1 KiB
+	\item Cache size: 32 bytes
+	\item Cache block size: 4 bytes
+	\item Number of lines: 8
+\end{itemize}
+
+\vspace{10px}
+\noindent The mapping of a memory address to a specific location in the cache is fundamental to cache placement policies. Figure (\ref{fig:addr2cacheline}) illustrates the division
+of a memory address into its constituent parts: the tag, set, and offset.
+
+\begin{center}
+	\centering
+	\includegraphics[width=0.55\textwidth]{figures/02-background/caches-addr_to_cache_line_loc.pdf}
+	\captionof{figure}{An example of how a memory address is divided into tag, set, and offset for cache line identification.}
+	\label{fig:addr2cacheline}
+\end{center}
+
+\noindent The \textit{offset} field is only used when the CPU requests a data operation to determine the specific byte within a cache block and is not stored in the cache. The
+\textit{tag} and (optionally) \textit{set} fields are used to find cache lines for a specific address.
+
+\subsubsection{Fully associative cache}
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/full_ass_mem.pdf}
+	\captionof{figure}{Visual representation of fully associative mapping}
+	\label{fig:full_ass_mem}
+\end{center}
+
+\noindent In the fully associative cache each \textit{cache line} can hold a copy of \textit{any memory location}. The memory address is split into the following bit fields:
+
+\begin{itemize}
+	\item \textbf{Offset:} bits are used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in a cache line.
+	\item \textbf{Tag:} bits are used by the cache hardware to identify if the requested data is stored in a particular cache line. It takes up the rest of the address, in our example 8 bits.
+\end{itemize}
+
+\noindent This configuration minimizes the chances of cache misses due to conflicts, potentially improving performance. However, fully associative caches require complex hardware
+for searching and matching cache lines to a given memory address. Specifically, each memory access involves comparing the tag of the requested address with the tags of all cache
+lines simultaneously. This requires a comparator (with the number of inputs equal to the number of bits in the tag field) for each cache line, significantly increasing the hardware
+complexity. As a result, fully associative caches are impractical for larger caches due to the high number of required comparators, which leads to increased power consumption and
+die size \cite{whatevery}.
+
+\subsubsection{Set associative cache}
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/set_ass_mem.pdf}
+	\captionof{figure}[Visual representation of 4-way set associative mapping]{Visual representation of 4-way set associative mapping (highlighted lines sharing one set)}
+	\label{fig:set_ass_mem}
+\end{center}
+
+\noindent The set associative cache introduces a concept of a \textit{set} - a collection of more than one cache line sharing the same \textit{tag}. The address is split into the following fields:
+
+\begin{itemize}
+	\item \textbf{Offset:} bits used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in the cache line.
+	\item \textbf{Set:} bits are used to select the cache set comparators. This example presents 4-way set associative cache - meaning that there are 4 lines
+		in each set - needing 2 bits to address it.
+	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 6 bits.
+\end{itemize}
+
+\noindent This configuration exchanges the flexibility of fully associative placement, for a simplified hardware model. The reduced flexibility comes from the fact that
+not every memory address can be cached at the same time, let's imagine that the following addresses are loaded to the cache \texttt{0b0000\_00\_00}, \texttt{0b0001\_00\_00}, \texttt{0b0011\_00\_00}
+and \texttt{0b0111\_00\_00}; all of these four lines share the same \textit{set} \texttt{0b00}, loading another address with the same set, for example \texttt{0b1000\_00\_00} would require 
+an eviction of one of those lines. Eviction methods will be covered in the (\ref{sec:eviction_policies}) section. 
+This tradeoff is compensated by the simplified hardware model of set associative caches. Instead of requiring a comparator for each possible memory location (as in fully
+associative caches), set associative caches only require comparators for each line within a set. The \textit{set} matching can be done using simple \textit{MUX}-es to select
+different memory blocks, thereby reducing the overall hardware complexity \cite{whatevery}.
+This architecture has found widespread adoption, becoming the most popular type of cache for processors in embedded devices, personal computers and high performance compute clusters
+\cite{digitaldesgnandcomp, evalofcaceh}.
+
+\subsubsection{Directly mapped cache}
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/dir_map_mem.pdf}
+	\captionof{figure}{Visual representation of directly mapped cache}
+	\label{fig:dir_map_mem}
+\end{center}
+
+\noindent In the directly mapped cache each \textit{cache line} can hold a copy of a single \textit{tag}. This policy is equivalent to the set associative cache, where the amount of sets is equal to
+the number of cache lines.
+
+\begin{itemize}
+	\item \textbf{Offset:} bits used to determine the byte to be accessed from the cache line. In this example there are two bits, that are used to address 4 bytes in the cache line.
+	\item \textbf{Index:}  bits are used to select the cache index comparators. Since the amount of indexes must be equal to the number of cache lines, our example uses 3 bits.
+	\item \textbf{Tag:} is used by the hardware comparator in the cache hardware design to match the address on cache request. It takes up the rest of the address, in our example 5 bits.
+\end{itemize}
+
+\noindent Due to their simplicity - no need for replacement policies, and simple design, relatively small amount of supporting hardware components is needed, resulting in low power
+consumption, fast and predictable accesses. Thanks to these characteristics fully associative caches have found usage in the TLB caches in some Intel processors. The simplicity
+comes with a drawback - they do not scale well, implementing such architecture as higher level caches will result in lower performance when compared to another solutions \cite{whatevery}.
+
+\subsection{Replacement policies} \label{sec:eviction_policies}
+In cache design, replacement policies describe actions that are performed when a line needs to get \textit{evicted} from the cache memory.
+The choice of replacement policy is a trade-off between cache performance and design complexity required to implement a given solution. Low power
+devices, such as embedded microcontrollers, often opt for simple implementations, such as \textit{random eviction} or \textit{FIFO}, as these require
+a lower amount of digital logic to select a line to evict, decreasing power consumption. High performance processors, found in PCs, servers, tablets and smartphones,
+often use more advanced policies, such as \textit{LRU} and \textit{LFU}.
+
+\subsubsection{Queue based}
+Queue-based replacement policies use data structures such as queues to manage the replacement process. The most common queue based policy is the
+\textit{First In First Out (FIFO)} policy. In this method the oldest cache line is replaced first. The main advantages of this strategy are
+its relative ease of implementation and predictable eviction behavior \cite{fifo1}. That simplicity comes at a cost, as this approach does not guarantee optimal cache usage. The queue
+based policies do not consider the frequency or recency of the data access when evicting lines, this can lead to a scenario where a data line, that has just been accessed - and, due to
+temporal locality, is likely to be accessed again - might get prematurely evicted from cache, simply because it was the first loaded line.
+
+\vspace{10px}\noindent Other queue based replacement policies include: Circular Buffer, Second Chance or SIEVE \cite{fifo2}.
+
+\subsubsection{Recency based}
+Recency based policies prioritize data that has been accessed most recently, leveraging the concept of temporal locality and addressing one of
+the main drawback of queue based policies. One of the examples of such policy is the \textit{Least Recently Used (LRU)} policy. In this approach, the cache controller
+keeps track of the recency of data by maintaining an ordered list of cache lines, where the most recently accessed lines are moved to the front. Due to the need of monitoring
+the usage data, LRU (or other frequency based policies) require much more complex hardware designs. 
+
+\vspace{10px}\noindent Other recency based replacement policies include: Bimodal Insertion Policy \cite{bip}, LFU with Aging or LRU-K \cite{eviction_summary}.
+
+\subsubsection{Frequency based}
+Frequency based policies attempt to leverage the temporal locality of memory transfers by prioritizing data that has been used (read) most frequently.
+An example of these policies is \textit{Least Frequently Used (LFU)}. Similarly to the recency based approaches, the cache controller tracks additional usage counters
+for each line, related to the amount of times that an address has been accessed - this increases performance at the cost of increased complexity.
+
+\vspace{10px}\noindent Other frequency based replacement policies include: Adaptive Replacement Cache \cite{arc1}, Two-Level Adaptive Replacement Cache \cite{twoleveladaptive} or Least Frequently Used with Dynamic Aging \cite{jayarekha2010adaptive}.
+
+\subsection{Cache coherency}
+
+The goal of achieving cache coherency is to maintain a consistent state between two or
+more separate cache memories. This process can take place both in single-core
+systems - in which the state is synchronized between two or more different levels of caches
+- and in multicore processors, where caches are kept in sync between multiple
+processors.
+
+\subsubsection{Direct memory access} \label{sec:dma}
+Direct memory access, also referred to as \textit{DMA}, is a mechanism that
+frees up the CPU cycles dedicated to memory operations. It is commonly used 
+in one of two configurations:
+
+\begin{itemize}
+	\item \textbf{I/O to memory DMA:} In this mode, the CPU initiates a data block
+		transfer, after which the DMA controller takes over to move or copy the requested data.
+		While the transfer is ongoing, the CPU remains free to perform other operations.
+		The processor receives an interrupt from the DMA controller once the transfer is complete.
+		This arrangement allows for multitasking during data transactions.
+	\item \textbf{Memory to memory DMA:} In this configuration the peripheral can perform memory
+		transfers completely independently from the CPU. This allows for high speed data transfers
+		between different memory regions - often spanning multiple devices - without increasing
+		the processor workload.
+\end{itemize}
+
+\noindent DMA functionality can be found in a variety of modern devices and
+peripherals, starting from the relatively simple implementations found in the
+UART and USART controllers, passing through more complex setups in network
+interfaces, and ending on high-performance computation accelerators (GPU/NPU)
+and storage controllers.
+
+\noindent In the cache coherency context, special care needs to be
+taken when utilizing and implementing DMA mechanisms, the figure
+(\ref{fig:dma_cache_issues}) presents an example of memory $\leftrightarrow$
+cache consistency error caused by a DMA access.
+
+\begin{center}
+	\centering
+	\includegraphics[width=\textwidth]{figures/02-background/dma_cache_issues.pdf}
+	\captionof{figure}{Coherency error caused by a DMA transfer}
+	\label{fig:dma_cache_issues}
+\end{center}
+
+\noindent This example starts off with the main memory and first level data cache - referred to as \texttt{l1d\$}, in sync.
+A DMA operation updates the main memory address \texttt{0x8000\_0000} to a new value \texttt{0xFF} - the change is performed directly
+in the memory, bypassing the CPU cache system. When CPU accesses this memory address, it retrieves the value from its
+cache line, which has not been updated, as the DMA transfer was completely transparent to the processor.
+In system design, there are two main ways to address such problems:
+
+\begin{itemize}
+	\item \textbf{Hardware approach:} \textit{bus snooping} (sometimes also referred to as \textit{bus sniffing}) is an
+		approach where an additional hardware coherency controller - called \textit{snooper} - monitors the outstanding
+		transfers on the bus \cite{snoopy}. When an external access to a bus is detected, it sends a signal to the cache system, where the
+		affected caches are either flushed or the invalid lines are marked as \textit{dirty}. The primary advantage of this solution is the reduce
+		complexity of the operating system and/or drivers, coupled with the CPU executing fewer instructions - at the cost of increased hardware complexity.
+	\item \textbf{Software approach:} in designs where implementing hardware coherency solution is not possible - due to space, power or cost constraints -
+		the software solutions must be used. In these cases the operating system or device drivers must keep track of ongoing DMA transfers and manually
+		invoke cache invalidating and flushing instructions when necessary. While such solutions reduce the overall hardware design complexity, they add a
+		runtime overhead for the processor.
+\end{itemize}
+
+
+\subsubsection{Symmetric multiprocessing}
+
+In the context of CPU's, symmetric multiprocessing (or shared-memory multiprocessing) is a system architecture where two or more processors
+are running \textbf{independently of each other}. In SMP systems processors share a common memory pool, allowing for data sharing and communication
+between cores. Such configuration requires that multiple cores share a common bus. Some examples of such buses include \textit{Front-side bus}, \textit{Intel Ultra Path Interconnect}
+and \textit{HyperTransport} on the x86 personal computers; examples used in embedded systems are \textit{Arm Advanced Microcontroller Bus Architecture} and \textit{SiFive TileLink}.
+
+One of the key benefits of SMP designs is their ability to increase performance in a scalable manner, benefiting from parallelization of workloads among multiple cores.
+Another advantage of such designs is the increased data throughput between multiple cores, which tend to be physically located close to each other on the silicon die.
+This proximity allows for much higher bus clock frequencies, thereby increasing the maximum possible data transfer bandwidth on the shared bus.
+
+In the context of cache coherency, processors in SMP systems typically share not only the main memory but also higher-level caches - such as level 2 and level 3 caches.
+The contents of the first level of cache are usually not shared between cores. Despite L1 being private to each core, coherence must be maintained across all cache levels.
+This is achieved by using various \textit{coherence protocols}, such as \textbf{MESI} (Modified, Exclusive, Shared, Invalid) and \textbf{MOESI} (Modified, Owned, Exclusive, Shared, Invalid).
+This work will not cover the specific implementation details of these protocols.
+
